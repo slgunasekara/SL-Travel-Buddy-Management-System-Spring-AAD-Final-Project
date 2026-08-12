@@ -1,4 +1,4 @@
-package com.example.slbusmanagement.dto;
+package com.example.slbusmanagement.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

@@ -1,4 +1,4 @@
-package com.example.slbusmanagement.dto;
+package com.example.slbusmanagement.entity;
 
 import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
@@ -13,19 +13,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class TripExpense {
+public class Trip {
 
     @Id
-    private Long tripExpId;
-
     private Long tripId;
-    private String date;
-    private Double fuelAmount;
-    private Double parkingAmount;
-    private Double otherAmount;
-    private String otherDescription;
-    private String notes;
+
+    private String tripCategory;
+
+    private Long busId;
+
+    private String startLocation;
+
+    private String endLocation;
+
+    private Double distance;
+
+    private Double totalIncome;
+
+    private String tripDate;
+
+    private String description;
+
     private Long createdBy;
+
 
     @Enumerated(EnumType.STRING)
     private RecordStatus status = RecordStatus.ACTIVE;

@@ -1,4 +1,4 @@
-package com.example.slbusmanagement.dto;
+package com.example.slbusmanagement.entity;
 
 import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
@@ -13,18 +13,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class TripEmployee {
+public class EmployeeSalary {
 
     @Id
-    private Long tripEmpId;
-
-    private Long tripId;
+    private Long salaryId;
 
     private Long empId;
 
-    private String roleInTrip;
+    private Long tripId;
 
-    private String assignedDate;
+    private Double amount;
+
+    private String date;
+
+    private String description;
+
+    private Boolean fromTripExpense;
 
     private Long createdBy;
 

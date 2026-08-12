@@ -1,4 +1,4 @@
-package com.example.slbusmanagement.dto;
+package com.example.slbusmanagement.entity;
 
 import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
@@ -13,24 +13,26 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class OtherService {
+public class Customer {
 
     @Id
-    private Long serviceId;
+    private Long customerId;
 
-    private Long tripId;
+    private String name;
 
-    private Long busId;
+    private String contact;
 
-    private String serviceName;
+    private String nic;
 
-    private Double cost;
+    private String email;
 
-    private String description;
+    private String address;
 
-    private String date;
+    private String notes;
 
     private Long createdBy;
+
+    private String createdAt;
 
 
     @Enumerated(EnumType.STRING)
