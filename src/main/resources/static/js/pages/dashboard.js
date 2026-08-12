@@ -10,27 +10,6 @@ function renderDashboardPage(container) {
     return `<span class="mom-item__change mom-item__change--${dir}">${arrow} ${Math.abs(m.pct).toFixed(1)}%</span>`;
   }
 
-  function buildNarrative() {
-    if (s.totalTrips === 0) {
-      return `You haven't logged any trips yet. Once you start adding trips, this space will automatically summarize your income, expenses and profit trends in plain language.`;
-    }
-    const avgPerTrip = s.totalIncome / s.totalTrips;
-    const margin = s.totalIncome > 0 ? (s.netProfit / s.totalIncome) * 100 : 0;
-    const marginTone = margin >= 20 ? "a healthy" : margin >= 0 ? "a modest" : "a negative";
-
-    let text = `Across <strong>${s.totalTrips}</strong> trip${s.totalTrips === 1 ? "" : "s"} logged so far, your fleet has earned <strong>${Fmt.money(s.totalIncome)}</strong> in total income — averaging around <strong>${Fmt.money(avgPerTrip)}</strong> per trip. `;
-    text += `Operating costs (fuel, salaries, maintenance, parts and other services) have added up to <strong>${Fmt.money(s.totalExpenses)}</strong>, leaving a net ${s.netProfit >= 0 ? "profit" : "loss"} of <strong>${Fmt.money(Math.abs(s.netProfit))}</strong> — ${marginTone} margin of ${Math.abs(margin).toFixed(1)}%. `;
-
-    if (mom.income.prev > 0 || mom.expenses.prev > 0 || mom.income.cur > 0) {
-      const incomeDir = mom.income.pct > 0.5 ? "up" : mom.income.pct < -0.5 ? "down" : "about flat";
-      const profitDir = mom.profit.pct > 0.5 ? "up" : mom.profit.pct < -0.5 ? "down" : "about flat";
-      text += `Compared to ${mom.prevLabel}, income is ${incomeDir}${incomeDir !== "about flat" ? ` ${Math.abs(mom.income.pct).toFixed(1)}%` : ""} and net profit is ${profitDir}${profitDir !== "about flat" ? ` ${Math.abs(mom.profit.pct).toFixed(1)}%` : ""} so far this month. `;
-      if (mom.profit.pct >= 5) text += `Nice trajectory — keep it up! 🎉`;
-      else if (mom.profit.pct <= -10) text += `Worth a closer look at what's driving expenses up this month.`;
-    }
-    return text;
-  }
-
   container.innerHTML = `
     <div class="page-head">
       <div>
@@ -66,14 +45,6 @@ function renderDashboardPage(container) {
       </div>
     </div>
 
-    <div class="card insight-card">
-      <div class="insight-card__icon">${icon("trend")}</div>
-      <div class="insight-card__body">
-        <h3>Business Snapshot</h3>
-        <p>${buildNarrative()}</p>
-      </div>
-    </div>
-
     <div class="grid-2">
       <div class="card">
         <div class="card__head">
@@ -82,35 +53,41 @@ function renderDashboardPage(container) {
         <div id="chartHost"></div>
       </div>
       <div class="card">
-        <div class="card__head"><h3>Fleet & Document Alerts</h3></div>
-        <div id="alertsHost" class="alert-list"></div>
+        <div class="card__head"><h3>Income Breakdown</h3></div>
+        <div id="incomeDonutHost"></div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card__head">
-        <h3>${mom.curLabel} vs ${mom.prevLabel}</h3>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card__head"><h3>Fleet & Document Alerts</h3></div>
+        <div id="alertsHost" class="alert-list"></div>
       </div>
-      <div class="mom-grid">
-        <div class="mom-item">
-          <span class="mom-item__label">Income</span>
-          <span class="mom-item__value">${Fmt.money(mom.income.cur)}</span>
-          ${momChangeHtml(mom.income)}
+      <div class="card">
+        <div class="card__head">
+          <h3>${mom.curLabel} vs ${mom.prevLabel}</h3>
         </div>
-        <div class="mom-item">
-          <span class="mom-item__label">Expenses</span>
-          <span class="mom-item__value">${Fmt.money(mom.expenses.cur)}</span>
-          ${momChangeHtml(mom.expenses)}
-        </div>
-        <div class="mom-item">
-          <span class="mom-item__label">Net Profit</span>
-          <span class="mom-item__value">${Fmt.money(mom.profit.cur)}</span>
-          ${momChangeHtml(mom.profit)}
-        </div>
-        <div class="mom-item">
-          <span class="mom-item__label">Trips</span>
-          <span class="mom-item__value">${mom.trips.cur}</span>
-          ${momChangeHtml(mom.trips)}
+        <div class="mom-grid">
+          <div class="mom-item">
+            <span class="mom-item__label">Income</span>
+            <span class="mom-item__value">${Fmt.money(mom.income.cur)}</span>
+            ${momChangeHtml(mom.income)}
+          </div>
+          <div class="mom-item">
+            <span class="mom-item__label">Expenses</span>
+            <span class="mom-item__value">${Fmt.money(mom.expenses.cur)}</span>
+            ${momChangeHtml(mom.expenses)}
+          </div>
+          <div class="mom-item">
+            <span class="mom-item__label">Net Profit</span>
+            <span class="mom-item__value">${Fmt.money(mom.profit.cur)}</span>
+            ${momChangeHtml(mom.profit)}
+          </div>
+          <div class="mom-item">
+            <span class="mom-item__label">Trips</span>
+            <span class="mom-item__value">${mom.trips.cur}</span>
+            ${momChangeHtml(mom.trips)}
+          </div>
         </div>
       </div>
     </div>
@@ -134,6 +111,19 @@ function renderDashboardPage(container) {
       { name: "Profit", color: "#3565e8", data: chartData.map(d => d.profit) }
     ]
   });
+
+  // Income breakdown donut: how total income splits into expenses vs net profit.
+  const donutData = [];
+  if (s.totalExpenses > 0) donutData.push({ label: "Expenses", value: s.totalExpenses, color: "#e0663e" });
+  if (s.netProfit > 0) donutData.push({ label: "Net Profit", value: s.netProfit, color: "#2f9e6e" });
+  renderDonutChart(qs("#incomeDonutHost"), {
+    data: donutData,
+    valueFmt: (v) => Fmt.money(v)
+  });
+  if (s.netProfit < 0) {
+    qs("#incomeDonutHost").insertAdjacentHTML("beforeend",
+      `<p class="muted" style="text-align:center; margin-top:10px;">Expenses currently exceed income by ${Fmt.money(Math.abs(s.netProfit))}.</p>`);
+  }
 
   // Alerts: insurance/license expiry + bus service reminders (shared with the topbar notification bell)
   const alerts = Q.fleetAlerts();

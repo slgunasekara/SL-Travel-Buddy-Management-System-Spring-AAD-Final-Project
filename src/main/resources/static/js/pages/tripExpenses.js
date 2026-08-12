@@ -1,7 +1,11 @@
 /* pages/tripExpenses.js — Manage Trip Expenses (mirrors ManageTripExpensesController).
-   Rewritten so Fuel, Parking and Other can all be entered together for a
-   trip and saved in a single action (each non-empty amount becomes its
-   own record behind the scenes), instead of saving one type at a time. */
+   Fuel, Parking and Other can all be entered together for a trip and
+   saved in a single action (each non-empty amount becomes its own
+   record behind the scenes). There are two description fields:
+   - "What is the Other expense for?" — specific to the Other amount,
+     required only when an Other amount is entered.
+   - "Trip Notes" — a general, optional note about this whole expense
+     entry, applied to every record created in the same save. */
 function renderTripExpensesPage(container) {
   let editingId = null; // set only when editing ONE existing row from the table below
 
@@ -39,9 +43,13 @@ function renderTripExpensesPage(container) {
           <label>Other Amount (Rs.)</label>
           <input type="number" step="0.01" id="f_otherAmount" placeholder="0.00" />
         </div>
-        <div class="form-field form-field--wide">
+        <div class="form-field form-field--wide" id="otherDescWrap">
           <label>What is the "Other" expense for? <span id="otherReqMark"></span></label>
           <input type="text" id="f_otherDescription" placeholder="Only needed if you entered an Other amount above" disabled />
+        </div>
+        <div class="form-field form-field--wide" id="tripNotesWrap">
+          <label>Trip Notes <span class="muted" style="font-weight:400;">(optional — applies to all expenses saved together here)</span></label>
+          <textarea id="f_tripNotes" rows="2" placeholder="e.g. Colombo-Kandy return trip, heavy traffic day"></textarea>
         </div>
       </div>
       <p class="muted" id="editHint" style="margin-top:10px; display:none;">
@@ -76,12 +84,18 @@ function renderTripExpensesPage(container) {
   const parkEl = () => qs("#f_parkingAmount");
   const otherEl = () => qs("#f_otherAmount");
   const otherDescEl = () => qs("#f_otherDescription");
+  const notesEl = () => qs("#f_tripNotes");
+
+  function combineDescription(specific, general) {
+    return [specific, general].map(s => (s || "").trim()).filter(Boolean).join(" — ");
+  }
 
   function syncOtherDescState() {
     const hasOther = Number(otherEl().value) > 0;
-    otherDescEl().disabled = !hasOther;
-    qs("#otherReqMark").innerHTML = hasOther ? '<span class="req">*</span>' : "";
-    if (!hasOther) otherDescEl().value = "";
+    otherDescEl().disabled = !hasOther && !editingId;
+    const mark = qs("#otherReqMark");
+    if (mark) mark.innerHTML = hasOther ? '<span class="req">*</span>' : "";
+    if (!hasOther && !editingId) otherDescEl().value = "";
   }
   otherEl().addEventListener("input", syncOtherDescState);
 
@@ -93,6 +107,9 @@ function renderTripExpensesPage(container) {
     parkEl().value = "";
     otherEl().value = "";
     otherDescEl().value = "";
+    notesEl().value = "";
+    qs("#otherDescWrap label").innerHTML = `What is the "Other" expense for? <span id="otherReqMark"></span>`;
+    qs("#tripNotesWrap").style.display = "";
     syncOtherDescState();
     qs("#editHint").style.display = "none";
     ["f_tripId", "f_date", "f_fuelAmount", "f_parkingAmount", "f_otherAmount"].forEach(id => qs("#" + id).disabled = false);
@@ -158,14 +175,18 @@ function renderTripExpensesPage(container) {
     editingId = id;
     qs("#f_tripId").value = row.tripId;
     qs("#f_date").value = row.date;
-    fuelEl().value = ""; parkEl().value = ""; otherEl().value = ""; otherDescEl().value = "";
+    fuelEl().value = ""; parkEl().value = ""; otherEl().value = "";
     if (row.tripExpType === "FUEL") fuelEl().value = row.amount;
     else if (row.tripExpType === "PARKING") parkEl().value = row.amount;
-    else { otherEl().value = row.amount; otherDescEl().value = row.description || ""; }
-    syncOtherDescState();
+    else otherEl().value = row.amount;
 
-    // Only the field matching this record's type stays editable, to avoid accidentally
-    // creating extra records for the other two amounts while editing a single one.
+    // In edit mode we work with ONE record's raw description directly,
+    // rather than trying to split it back into "specific" + "general" parts.
+    otherDescEl().value = row.description || "";
+    otherDescEl().disabled = false;
+    qs("#otherDescWrap label").innerHTML = `Description`;
+    qs("#tripNotesWrap").style.display = "none";
+
     ["f_fuelAmount", "f_parkingAmount", "f_otherAmount"].forEach(id2 => {
       const keep = (id2 === "f_fuelAmount" && row.tripExpType === "FUEL") ||
                    (id2 === "f_parkingAmount" && row.tripExpType === "PARKING") ||
@@ -195,18 +216,19 @@ function renderTripExpensesPage(container) {
     if (!tripId) { Toast.warning("Please select a trip."); return; }
     if (!date) { Toast.warning("Please select a date."); return; }
 
+    const generalNotes = notesEl().value.trim();
     const entries = [
-      { type: "FUEL", amount: Number(fuelEl().value) || 0, description: "" },
-      { type: "PARKING", amount: Number(parkEl().value) || 0, description: "" },
-      { type: "OTHERS", amount: Number(otherEl().value) || 0, description: otherDescEl().value.trim() }
+      { type: "FUEL", amount: Number(fuelEl().value) || 0, description: combineDescription("", generalNotes) },
+      { type: "PARKING", amount: Number(parkEl().value) || 0, description: combineDescription("", generalNotes) },
+      { type: "OTHERS", amount: Number(otherEl().value) || 0, description: combineDescription(otherDescEl().value.trim(), generalNotes) }
     ].filter(e => e.amount > 0);
 
     if (entries.length === 0) {
       Toast.warning("Enter at least one amount (Fuel, Parking, or Other) before saving.");
       return;
     }
-    const otherEntry = entries.find(e => e.type === "OTHERS");
-    if (otherEntry && !otherEntry.description) {
+    const otherHasAmount = Number(otherEl().value) > 0;
+    if (otherHasAmount && !otherDescEl().value.trim()) {
       Toast.warning('Please describe what the "Other" expense is for.');
       return;
     }
@@ -235,13 +257,14 @@ function renderTripExpensesPage(container) {
     const idx = rows.findIndex(r => r.tripExpId === editingId);
     if (idx < 0) return;
     const type = rows[idx].tripExpType;
-    let amount, description;
-    if (type === "FUEL") { amount = Number(fuelEl().value) || 0; description = ""; }
-    else if (type === "PARKING") { amount = Number(parkEl().value) || 0; description = ""; }
-    else { amount = Number(otherEl().value) || 0; description = otherDescEl().value.trim(); }
+    let amount;
+    if (type === "FUEL") amount = Number(fuelEl().value) || 0;
+    else if (type === "PARKING") amount = Number(parkEl().value) || 0;
+    else amount = Number(otherEl().value) || 0;
 
     if (amount <= 0) { Toast.warning("Amount must be a positive number."); return; }
-    if (type === "OTHERS" && !description) { Toast.warning('Please describe what the "Other" expense is for.'); return; }
+    const description = otherDescEl().value.trim();
+    if (type === "OTHERS" && !description) { Toast.warning('Please add a description for this "Other" expense.'); return; }
 
     rows[idx] = { ...rows[idx], tripId, date, amount, description };
     DB.writeAll("tripExpenses", rows);

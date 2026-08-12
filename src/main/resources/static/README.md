@@ -103,10 +103,12 @@ localStorage.clear(); location.reload();
 ## Workflow refinements
 - **Trip Expenses, combined entry** — enter Fuel, Parking and Other
   amounts for a trip together and save once; each non-empty amount is
-  stored as its own record behind the scenes. The "Other" description
-  field only unlocks (and is required) once you enter an Other amount.
-  Editing a single existing expense from the table still updates just
-  that one record.
+  stored as its own record behind the scenes. There are two description
+  fields: "What is the Other expense for?" (specific, required only when
+  an Other amount is entered) and "Trip Notes" (general, optional,
+  applied to every record saved together). Editing a single existing
+  expense from the table shows just that one record's description,
+  directly editable.
 - **Driving Licence No., conditionally required** — on Manage Employee,
   it's now required only when the Category is Driver or Manager.
 - **Employee Salary, strict search-select** — instead of a long dropdown,
@@ -121,9 +123,31 @@ localStorage.clear(); location.reload();
 - **Tools page simplified** — the plain calculator card was removed
   since the topbar's quick-access calculator already covers it; the
   fuel/profit/time calculators and route finder remain.
-- **Dashboard business snapshot** — a plain-language paragraph
-  summarizing total income, expenses, profit margin, and how this month
-  compares to last month.
+- **Dashboard income breakdown** — an animated donut chart shows how
+  total income splits into expenses vs. net profit, alongside the
+  existing 30-day trend chart, alerts, and month-over-month comparison.
+- **Distance Checker (Tools page)** — enter two locations and get the
+  driving distance in km without leaving the page (via Google Maps),
+  which also auto-fills the Fuel Cost Calculator's distance field right
+  next to it. See "Distance Checker setup" below — until configured, it
+  gracefully falls back to opening Google Maps directions in a new tab,
+  same as Route Finder.
+
+## Distance Checker setup (optional)
+Like the OTP email feature, real distance lookups need a small one-time
+setup since a plain HTML/JS site can't call paid APIs without a key:
+1. Go to https://console.cloud.google.com/, create/select a project.
+2. APIs & Services → Library → enable **Maps JavaScript API** and
+   **Distance Matrix API**.
+3. APIs & Services → Credentials → Create Credentials → API key.
+4. Restrict the key (Application restrictions → Websites) to your
+   domain, or `localhost` while testing.
+5. Paste the key into `js/mapsConfig.js` → `GOOGLE_MAPS_API_KEY`.
+
+Google requires billing to be enabled for this API, though typical
+fleet-management usage is very cheap and usually covered by Google's
+free monthly credit. Until you set a key, Distance Checker automatically
+opens Google Maps in a new tab instead — it never breaks.
 
 ## Sending real OTP emails (optional but recommended)
 By default, "Forgot password" generates and validates a real OTP exactly

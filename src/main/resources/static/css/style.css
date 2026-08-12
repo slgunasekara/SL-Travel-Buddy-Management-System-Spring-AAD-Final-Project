@@ -405,28 +405,35 @@ button { font-family: inherit; }
 
 .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; align-items: start; }
 
-/* ---------------------------- Dashboard insight card ---------------------------- */
-.insight-card {
-  display: flex; align-items: flex-start; gap: 18px;
-  background: linear-gradient(120deg, var(--primary-800), var(--primary-600) 55%, var(--primary-500));
-  color: #fff; border: none; position: relative; overflow: hidden;
+/* ---------------------------- Donut chart entrance animation (Dashboard) ---------------------------- */
+.donut-svg { animation: donutPop .65s cubic-bezier(.34,1.56,.64,1) both; transform-origin: center; }
+.donut-slice {
+  transform-origin: center;
+  animation: sliceFadeIn .5s ease both;
 }
-.insight-card::before {
-  content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.14), transparent 70%);
-  top: -100px; right: -80px; pointer-events: none;
+.donut-slice:nth-child(1) { animation-delay: .05s; }
+.donut-slice:nth-child(2) { animation-delay: .18s; }
+.donut-slice:nth-child(3) { animation-delay: .31s; }
+.donut-slice:nth-child(4) { animation-delay: .44s; }
+.donut-slice:nth-child(5) { animation-delay: .57s; }
+.donut-center-value, .donut-center-label { animation: fadeIn .4s ease .5s both; }
+.donut-legend-item { animation: slideInLeft .35s ease both; }
+.donut-legend-item:nth-child(1) { animation-delay: .3s; }
+.donut-legend-item:nth-child(2) { animation-delay: .38s; }
+.donut-legend-item:nth-child(3) { animation-delay: .46s; }
+
+@keyframes donutPop {
+  from { opacity: 0; transform: scale(.55) rotate(-90deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
-.insight-card__icon {
-  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
-  background: rgba(255,255,255,.16); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+@keyframes sliceFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.insight-card__icon .icon { width: 22px; height: 22px; color: #fff; }
-.insight-card__body { position: relative; z-index: 1; }
-.insight-card__body h3 { color: #fff; font-size: 15px; margin-bottom: 6px; }
-.insight-card__body p { color: rgba(255,255,255,.92); font-size: 13.8px; line-height: 1.7; margin: 0; }
-.insight-card__body p strong { color: #fff; font-weight: 700; }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 /* ---------------------------- Stat cards ---------------------------- */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-bottom: 24px; }

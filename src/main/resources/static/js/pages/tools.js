@@ -10,6 +10,17 @@ function renderToolsPage(container) {
 
     <div class="grid-2">
       <div class="card tool-card">
+        <div class="card__head"><h3>${icon("shield")} Distance Checker</h3></div>
+        <div class="form-grid">
+          <div class="form-field"><label>From</label><input type="text" id="distFrom" placeholder="e.g. Colombo" /></div>
+          <div class="form-field"><label>To</label><input type="text" id="distTo" placeholder="e.g. Kandy" /></div>
+        </div>
+        <button class="btn btn--primary btn--sm" id="btnCheckDistance">Check Distance</button>
+        <div class="tool-result" id="distanceResult"></div>
+        <p class="muted tool-note">Looks up the driving distance via Google Maps and fills it straight into the Fuel Cost Calculator on the right.</p>
+      </div>
+
+      <div class="card tool-card">
         <div class="card__head"><h3>${icon("route")} Fuel Cost Calculator</h3></div>
         <div class="form-grid">
           <div class="form-field"><label>Distance (km)</label><input type="number" id="fuelDistance" step="0.01" placeholder="e.g. 250" /></div>
@@ -47,13 +58,46 @@ function renderToolsPage(container) {
           <div class="form-field"><label>To</label><input type="text" id="routeTo" placeholder="e.g. Kandy" /></div>
         </div>
         <button class="btn btn--primary btn--sm" id="btnRoute">Open in Google Maps</button>
-        <p class="muted tool-note">Opens driving directions in a new tab (requires internet access).</p>
+        <p class="muted tool-note">Opens turn-by-turn driving directions in a new tab (requires internet access).</p>
       </div>
     </div>
 
     <p class="muted" style="text-align:center; margin-top: 4px;">
       Need a plain calculator? Use the ${icon("tool")} icon in the top bar — it's available on every page.
     </p>`;
+
+  /* ---- Distance Checker (stays in-page; auto-fills Fuel Cost Calculator) ---- */
+  qs("#btnCheckDistance").addEventListener("click", async () => {
+    const from = qs("#distFrom").value.trim();
+    const to = qs("#distTo").value.trim();
+    if (!from || !to) { Toast.warning("Please enter both locations."); return; }
+
+    const btn = qs("#btnCheckDistance");
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Checking...";
+
+    try {
+      const km = await getDrivingDistanceKm(from, to);
+      qs("#distanceResult").innerHTML = `
+        <div class="result-row"><span>Driving Distance</span><strong>${km.toFixed(1)} km</strong></div>`;
+      const fuelDistanceEl = qs("#fuelDistance");
+      if (fuelDistanceEl) fuelDistanceEl.value = km.toFixed(1);
+      Toast.success("Distance found and filled into the Fuel Cost Calculator!");
+    } catch (err) {
+      if (err.message === "not_configured") {
+        Toast.warning("Distance Checker needs a Google Maps API key (see js/mapsConfig.js). Opening Google Maps instead.");
+        window.open(`https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`, "_blank");
+      } else if (err.message === "load_failed") {
+        Toast.error("Couldn't reach Google Maps. Check your internet connection and try again.");
+      } else {
+        Toast.error("Couldn't find a distance for those locations — double-check the spelling and try again.");
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
 
   /* ---- Fuel cost calculator ---- */
   qs("#btnFuelCalc").addEventListener("click", () => {
