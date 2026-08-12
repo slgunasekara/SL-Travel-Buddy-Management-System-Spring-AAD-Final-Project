@@ -190,10 +190,138 @@ const Q = (() => {
       .sort((a, b) => b.tripDate.localeCompare(a.tripDate));
   }
 
+  /* ---- Bus service (maintenance) reminders — mirrors insurance/license alert logic ---- */
+  const SERVICE_DUE_DAYS = 180;   // recommend a service every ~6 months
+  const SERVICE_DUE_KM = 5000;    // or every 5,000 km, whichever first
+
+  function serviceReminders() {
+    const buses = DB.readAll("buses").filter(b => b.busStatus === "Active");
+    const maint = DB.readAll("maintenance");
+    const alerts = [];
+    const today = new Date();
+
+    buses.forEach(b => {
+      const history = maint.filter(m => m.busId === b.busId && m.serviceDate)
+        .sort((a, c) => c.serviceDate.localeCompare(a.serviceDate));
+      const last = history[0];
+      const currentMileage = Number(b.currentMileage) || 0;
+
+      if (!last) {
+        if (currentMileage >= SERVICE_DUE_KM) {
+          alerts.push({ type: "warning", text: `${b.busNumber}: No maintenance on record and mileage is ${currentMileage.toLocaleString()} km — a first service is recommended.` });
+        }
+        return;
+      }
+      const daysSince = Math.floor((today - new Date(last.serviceDate)) / (1000 * 60 * 60 * 24));
+      const kmSince = currentMileage - (Number(last.mileage) || 0);
+
+      if (daysSince > SERVICE_DUE_DAYS || kmSince > SERVICE_DUE_KM) {
+        alerts.push({ type: "danger", text: `${b.busNumber}: Service overdue — last serviced ${Fmt.date(last.serviceDate)} (${daysSince} days / ${Math.max(0, kmSince).toLocaleString()} km ago).` });
+      } else if (daysSince > SERVICE_DUE_DAYS - 30 || kmSince > SERVICE_DUE_KM - 1000) {
+        alerts.push({ type: "warning", text: `${b.busNumber}: Service due soon — last serviced ${Fmt.date(last.serviceDate)} (${daysSince} days / ${Math.max(0, kmSince).toLocaleString()} km ago).` });
+      }
+    });
+    return alerts;
+  }
+
+  /* ---- Combined fleet & document alerts, used by the dashboard panel AND the topbar notification bell ---- */
+  function fleetAlerts() {
+    const buses = DB.readAll("buses");
+    const soon = new Date(); soon.setDate(soon.getDate() + 30);
+    const alerts = [];
+    buses.forEach(b => {
+      if (b.insuranceExpiryDate) {
+        const d = new Date(b.insuranceExpiryDate);
+        if (d < new Date()) alerts.push({ type: "danger", text: `${b.busNumber}: Insurance expired on ${Fmt.date(b.insuranceExpiryDate)}` });
+        else if (d < soon) alerts.push({ type: "warning", text: `${b.busNumber}: Insurance expiring on ${Fmt.date(b.insuranceExpiryDate)}` });
+      }
+      if (b.licenseRenewalDate) {
+        const d = new Date(b.licenseRenewalDate);
+        if (d < new Date()) alerts.push({ type: "danger", text: `${b.busNumber}: License renewal overdue since ${Fmt.date(b.licenseRenewalDate)}` });
+        else if (d < soon) alerts.push({ type: "warning", text: `${b.busNumber}: License renewal due ${Fmt.date(b.licenseRenewalDate)}` });
+      }
+    });
+    return [...alerts, ...serviceReminders()];
+  }
+
+  /* ---- Top routes / top drivers leaderboards ---- */
+  function topRoutes(fromDate, toDate, limit = 5) {
+    const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
+    const map = {};
+    trips.forEach(t => {
+      const key = `${t.startLocation} → ${t.endLocation}`;
+      if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
+      map[key].trips += 1;
+      map[key].income += Number(t.totalIncome) || 0;
+    });
+    return Object.values(map).sort((a, b) => b.income - a.income).slice(0, limit);
+  }
+
+  function topDrivers(fromDate, toDate, limit = 5) {
+    const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
+    const tripIds = new Set(trips.map(t => t.tripId));
+    const tripIncomeById = {}; trips.forEach(t => tripIncomeById[t.tripId] = Number(t.totalIncome) || 0);
+    const assignments = DB.readAll("tripEmployees").filter(te => tripIds.has(te.tripId) && te.roleInTrip === "DRIVER");
+    const map = {};
+    assignments.forEach(te => {
+      if (!map[te.empId]) map[te.empId] = { empId: te.empId, name: empName(te.empId), trips: 0, income: 0 };
+      map[te.empId].trips += 1;
+      map[te.empId].income += tripIncomeById[te.tripId] || 0;
+    });
+    return Object.values(map).sort((a, b) => b.trips - a.trips).slice(0, limit);
+  }
+
+  /* ---- Month-over-month comparison ---- */
+  function momComparison() {
+    const now = new Date();
+    const curStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const curEnd = now.toISOString().slice(0, 10);
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevStart = prevMonthDate.toISOString().slice(0, 10);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+
+    const cur = summaryStats(curStart, curEnd);
+    const prev = summaryStats(prevStart, prevEnd);
+
+    function pctChange(curV, prevV) {
+      if (prevV === 0) return curV === 0 ? 0 : 100;
+      return ((curV - prevV) / Math.abs(prevV)) * 100;
+    }
+
+    return {
+      curLabel: now.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+      prevLabel: prevMonthDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+      income: { cur: cur.totalIncome, prev: prev.totalIncome, pct: pctChange(cur.totalIncome, prev.totalIncome) },
+      expenses: { cur: cur.totalExpenses, prev: prev.totalExpenses, pct: pctChange(cur.totalExpenses, prev.totalExpenses) },
+      profit: { cur: cur.netProfit, prev: prev.netProfit, pct: pctChange(cur.netProfit, prev.netProfit) },
+      trips: { cur: cur.totalTrips, prev: prev.totalTrips, pct: pctChange(cur.totalTrips, prev.totalTrips) }
+    };
+  }
+
+  /* ---- Expense category breakdown, for the pie chart on Reports ---- */
+  function expenseBreakdown(fromDate, toDate) {
+    const s = summaryStats(fromDate, toDate);
+    return [
+      { label: "Trip Expenses", value: s.tripExpenses, color: "#e0663e" },
+      { label: "Salaries", value: s.salaries, color: "#3565e8" },
+      { label: "Maintenance", value: s.maintenance, color: "#c98a1f" },
+      { label: "Parts", value: s.partPurchases, color: "#7454c7" },
+      { label: "Other Services", value: s.otherServices, color: "#0c8a86" }
+    ].filter(x => x.value > 0);
+  }
+
+  /* ---- Customers: bookings linked by NIC match against Event records ---- */
+  function customerBookingsCount(nic) {
+    if (!nic) return 0;
+    return DB.readAll("events").filter(e => e.customerNic && e.customerNic.trim().toLowerCase() === nic.trim().toLowerCase()).length;
+  }
+
   return {
     bus, employee, trip, user, userName, busNumber, empName,
     dailyProfitByRange, summaryStats, allDailyProfit, monthlyProfit,
     dashboardSummary, last30DaysChart, reportSummary,
-    incomeReport, expenseReport, salaryReport, tripReport
+    incomeReport, expenseReport, salaryReport, tripReport,
+    serviceReminders, fleetAlerts, topRoutes, topDrivers, momComparison,
+    expenseBreakdown, customerBookingsCount
   };
 })();

@@ -30,6 +30,7 @@ function renderEmployeePage(container) {
     searchKeys: ["empName", "empCategory", "contactNo", "nicNo", "empStatus"],
     defaultSort: (a, b) => b.empId - a.empId,
     emptyText: "No employees yet — add your first team member above.",
+    csvImport: true,
     beforeSave(data) {
       if (!Validate.isContact(data.contactNo)) return { error: "Contact number must be exactly 10 digits!" };
       if (!Validate.isNic(data.nicNo)) return { error: "Invalid NIC format! Use 9 digits + V, or 12 digits." };

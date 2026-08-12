@@ -2,6 +2,13 @@
 function renderDashboardPage(container) {
   const s = Q.dashboardSummary();
   const user = Session.currentUser();
+  const mom = Q.momComparison();
+
+  function momChangeHtml(m) {
+    const dir = m.pct > 0.5 ? "up" : m.pct < -0.5 ? "down" : "flat";
+    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "•";
+    return `<span class="mom-item__change mom-item__change--${dir}">${arrow} ${Math.abs(m.pct).toFixed(1)}%</span>`;
+  }
 
   container.innerHTML = `
     <div class="page-head">
@@ -52,6 +59,34 @@ function renderDashboardPage(container) {
     </div>
 
     <div class="card">
+      <div class="card__head">
+        <h3>${mom.curLabel} vs ${mom.prevLabel}</h3>
+      </div>
+      <div class="mom-grid">
+        <div class="mom-item">
+          <span class="mom-item__label">Income</span>
+          <span class="mom-item__value">${Fmt.money(mom.income.cur)}</span>
+          ${momChangeHtml(mom.income)}
+        </div>
+        <div class="mom-item">
+          <span class="mom-item__label">Expenses</span>
+          <span class="mom-item__value">${Fmt.money(mom.expenses.cur)}</span>
+          ${momChangeHtml(mom.expenses)}
+        </div>
+        <div class="mom-item">
+          <span class="mom-item__label">Net Profit</span>
+          <span class="mom-item__value">${Fmt.money(mom.profit.cur)}</span>
+          ${momChangeHtml(mom.profit)}
+        </div>
+        <div class="mom-item">
+          <span class="mom-item__label">Trips</span>
+          <span class="mom-item__value">${mom.trips.cur}</span>
+          ${momChangeHtml(mom.trips)}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card__head"><h3>Recent Trips</h3><a href="#/trips" class="link">View all →</a></div>
       <div class="table-wrap">
         <table class="data-table">
@@ -71,22 +106,8 @@ function renderDashboardPage(container) {
     ]
   });
 
-  // Alerts: expired/expiring insurance & license
-  const buses = DB.readAll("buses");
-  const soon = new Date(); soon.setDate(soon.getDate() + 30);
-  const alerts = [];
-  buses.forEach(b => {
-    if (b.insuranceExpiryDate) {
-      const d = new Date(b.insuranceExpiryDate);
-      if (d < new Date()) alerts.push({ type: "danger", text: `${b.busNumber}: Insurance expired on ${Fmt.date(b.insuranceExpiryDate)}` });
-      else if (d < soon) alerts.push({ type: "warning", text: `${b.busNumber}: Insurance expiring on ${Fmt.date(b.insuranceExpiryDate)}` });
-    }
-    if (b.licenseRenewalDate) {
-      const d = new Date(b.licenseRenewalDate);
-      if (d < new Date()) alerts.push({ type: "danger", text: `${b.busNumber}: License renewal overdue since ${Fmt.date(b.licenseRenewalDate)}` });
-      else if (d < soon) alerts.push({ type: "warning", text: `${b.busNumber}: License renewal due ${Fmt.date(b.licenseRenewalDate)}` });
-    }
-  });
+  // Alerts: insurance/license expiry + bus service reminders (shared with the topbar notification bell)
+  const alerts = Q.fleetAlerts();
   const alertsHost = qs("#alertsHost");
   alertsHost.innerHTML = alerts.length
     ? alerts.map(a => `<div class="alert-item alert-item--${a.type}">${icon(a.type === "danger" ? "shield" : "bell")}<span>${Fmt.escapeHtml(a.text)}</span></div>`).join("")
@@ -101,5 +122,5 @@ function renderDashboardPage(container) {
       <td>${Fmt.escapeHtml(t.startLocation)} → ${Fmt.escapeHtml(t.endLocation)}</td>
       <td>${Fmt.date(t.tripDate)}</td>
       <td>${Fmt.money(t.totalIncome)}</td>
-    </tr>`).join("") : `<tr><td colspan="6"><div class="table-empty">No trips yet.</div></td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="6"><div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips yet.</div></td></tr>`;
 }

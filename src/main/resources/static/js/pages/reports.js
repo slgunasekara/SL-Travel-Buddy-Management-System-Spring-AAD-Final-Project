@@ -16,7 +16,8 @@ function renderReportsPage(container) {
     { id: "salary", label: "Salary Report" },
     { id: "trip", label: "Trip Report" },
     { id: "daily", label: "Daily Profit" },
-    { id: "monthly", label: "Monthly Profit" }
+    { id: "monthly", label: "Monthly Profit" },
+    { id: "leaderboard", label: "Leaderboard" }
   ];
 
   container.innerHTML = `
@@ -98,9 +99,15 @@ function renderReportsPage(container) {
     if (activeTab === "overview") {
       host.innerHTML = `
         ${summaryCardsHtml()}
-        <div class="card">
-          <div class="card__head"><h3>Daily Profit Trend</h3></div>
-          <div id="overviewChart"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card__head"><h3>Daily Profit Trend</h3></div>
+            <div id="overviewChart"></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><h3>Expense Breakdown</h3></div>
+            <div id="overviewDonut"></div>
+          </div>
         </div>`;
       const rows = Q.dailyProfitByRange(fromDate, toDate).sort((a, b) => a.date.localeCompare(b.date));
       renderLineChart(qs("#overviewChart"), {
@@ -111,6 +118,7 @@ function renderReportsPage(container) {
           { name: "Net Profit", color: "#3565e8", data: rows.map(r => r.netProfit) }
         ]
       });
+      renderDonutChart(qs("#overviewDonut"), { data: Q.expenseBreakdown(fromDate, toDate) });
       return;
     }
 
@@ -228,6 +236,44 @@ function renderReportsPage(container) {
       };
       qs("#yearSelect").addEventListener("change", renderMonthly);
       renderMonthly();
+      return;
+    }
+
+    if (activeTab === "leaderboard") {
+      const routes = Q.topRoutes(fromDate, toDate, 5);
+      const drivers = Q.topDrivers(fromDate, toDate, 5);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="grid-2">
+          <div class="card">
+            <div class="card__head"><h3>🏆 Top Routes by Income</h3></div>
+            <div class="leaderboard-list">
+              ${routes.length ? routes.map((r, i) => `
+                <div class="leaderboard-item">
+                  <div class="leaderboard-rank">${i + 1}</div>
+                  <div class="leaderboard-main">
+                    <div class="leaderboard-title">${Fmt.escapeHtml(r.route)}</div>
+                    <div class="leaderboard-sub">${r.trips} trip${r.trips === 1 ? "" : "s"}</div>
+                  </div>
+                  <div class="leaderboard-value">${Fmt.money(r.income)}</div>
+                </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips in this range.</div>`}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__head"><h3>🏆 Top Drivers by Trips</h3></div>
+            <div class="leaderboard-list">
+              ${drivers.length ? drivers.map((d, i) => `
+                <div class="leaderboard-item">
+                  <div class="leaderboard-rank">${i + 1}</div>
+                  <div class="leaderboard-main">
+                    <div class="leaderboard-title">${Fmt.escapeHtml(d.name)}</div>
+                    <div class="leaderboard-sub">${Fmt.money(d.income)} in trip income</div>
+                  </div>
+                  <div class="leaderboard-value">${d.trips} trip${d.trips === 1 ? "" : "s"}</div>
+                </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No driver assignments in this range.</div>`}
+            </div>
+          </div>
+        </div>`;
       return;
     }
   }

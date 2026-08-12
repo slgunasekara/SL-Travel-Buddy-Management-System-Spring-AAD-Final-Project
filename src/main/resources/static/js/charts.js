@@ -92,3 +92,48 @@ function renderBarChart(el, { labels, data, color = "var(--accent)", height = 26
 
   el.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" preserveAspectRatio="none" class="chart-svg">${gridSvg}${bars}</svg>`;
 }
+
+function renderDonutChart(el, { data, size = 220, valueFmt = (v) => Fmt.money(v) }) {
+  // data = [{label, value, color}]
+  const total = data.reduce((a, d) => a + d.value, 0);
+  const cx = size / 2, cy = size / 2, r = size / 2 - 14, innerR = r * 0.6;
+
+  if (total <= 0) {
+    el.innerHTML = `<div class="donut-empty">No expense data for this range.</div>`;
+    return;
+  }
+
+  let angle = -90; // start at top
+  let slices = "";
+  data.forEach(d => {
+    const pct = d.value / total;
+    const sweep = pct * 360;
+    const startRad = (angle * Math.PI) / 180;
+    const endRad = ((angle + sweep) * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(startRad), y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad), y2 = cy + r * Math.sin(endRad);
+    const ix1 = cx + innerR * Math.cos(startRad), iy1 = cy + innerR * Math.sin(startRad);
+    const ix2 = cx + innerR * Math.cos(endRad), iy2 = cy + innerR * Math.sin(endRad);
+    const largeArc = sweep > 180 ? 1 : 0;
+    const path = `M ${ix1} ${iy1} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} L ${ix2} ${iy2} A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix1} ${iy1} Z`;
+    slices += `<path d="${path}" fill="${d.color}" class="donut-slice"><title>${d.label}: ${valueFmt(d.value)} (${(pct * 100).toFixed(1)}%)</title></path>`;
+    angle += sweep;
+  });
+
+  const legend = data.map(d => `
+    <div class="donut-legend-item">
+      <span class="donut-legend-dot" style="background:${d.color}"></span>
+      <span class="donut-legend-label">${d.label}</span>
+      <span class="donut-legend-value">${valueFmt(d.value)}</span>
+    </div>`).join("");
+
+  el.innerHTML = `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" class="donut-svg">
+        ${slices}
+        <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="donut-center-value">${valueFmt(total).replace("Rs. ", "")}</text>
+        <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="donut-center-label">Total</text>
+      </svg>
+      <div class="donut-legend">${legend}</div>
+    </div>`;
+}

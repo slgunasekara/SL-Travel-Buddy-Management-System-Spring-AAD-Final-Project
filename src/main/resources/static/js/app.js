@@ -9,6 +9,7 @@
   Router.register("#/buses", renderBusPage);
   Router.register("#/trips", renderTripsPage);
   Router.register("#/events", renderEventsPage);
+  Router.register("#/customers", renderCustomersPage);
   Router.register("#/trip-expenses", renderTripExpensesPage);
   Router.register("#/employees", renderEmployeePage);
   Router.register("#/salaries", renderSalaryPage);
@@ -19,6 +20,7 @@
   Router.register("#/reports", renderReportsPage);
   Router.register("#/tools", renderToolsPage);
   Router.register("#/users", renderUsersPage);
+  Router.register("#/settings", renderSettingsPage);
 
   Router.start();
 })();

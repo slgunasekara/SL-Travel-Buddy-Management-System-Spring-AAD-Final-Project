@@ -6,6 +6,10 @@
    table below, click a row to edit, Save / Update / Delete / Reset.
    ========================================================================= */
 
+const EMPTY_STATE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 8l2-4h14l2 4"/><path d="M3 8v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8"/><path d="M3 8h18"/><path d="M9 12h6"/>
+</svg>`;
+
 function fieldHtml(f, value) {
   const val = value === undefined || value === null ? "" : value;
   const req = f.required ? "required" : "";
@@ -40,15 +44,18 @@ function renderCrudPage(container, cfg) {
   /* cfg = {
        title, subtitle, table, idField,
        fields: [{name,label,type,required,options,...}],
-       columns: [{key,label, render(row)}],
+       columns: [{key,label, render(row), sortable, sortValue(row)}],
        searchKeys: [...],
        defaultSort(a,b),
        beforeSave(data, isEdit) -> data | {error},
        afterLoad(rows) -> rows (optional post-processing e.g. joins),
        extraToolbar: html,
-       emptyText
+       emptyText,
+       csvImport: true (adds an "Import CSV" button using cfg.fields as the schema),
+       onPrint(row) (adds a print icon per row that calls this)
      } */
   let editingId = null;
+  let sortState = null; // { colIndex, dir: 1|-1 }
 
   container.innerHTML = `
     <div class="page-head">
@@ -77,13 +84,14 @@ function renderCrudPage(container, cfg) {
         </div>
         <div class="table-toolbar__right">
           <span class="pill" id="rowCount">0 records</span>
+          ${cfg.csvImport ? `<button class="btn btn--ghost btn--sm" id="btnImportCsv">Import CSV</button><input type="file" id="csvFile" accept=".csv" class="file-input-hidden" />` : ""}
           <button class="btn btn--ghost btn--sm" id="btnExport">Export CSV</button>
           <button class="btn btn--ghost btn--sm" id="btnRefresh">Refresh</button>
         </div>
       </div>
       <div class="table-wrap">
         <table class="data-table" id="dataTable">
-          <thead><tr>${cfg.columns.map(c => `<th>${c.label}</th>`).join("")}<th class="col-actions">Actions</th></tr></thead>
+          <thead><tr>${cfg.columns.map((c, i) => `<th class="${c.sortable === false ? "" : "sortable"}" data-col="${i}">${c.label}${c.sortable === false ? "" : '<span class="sort-arrow">▲</span>'}</th>`).join("")}<th class="col-actions">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -145,20 +153,42 @@ function renderCrudPage(container, cfg) {
     });
   }
 
+  function applySort(rows) {
+    if (!sortState) return rows;
+    const col = cfg.columns[sortState.colIndex];
+    if (!col) return rows;
+    return [...rows].sort((a, b) => {
+      const av = col.sortValue ? col.sortValue(a) : a[col.key];
+      const bv = col.sortValue ? col.sortValue(b) : b[col.key];
+      if (av === bv) return 0;
+      if (av === undefined || av === null) return 1;
+      if (bv === undefined || bv === null) return -1;
+      const cmp = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
+      return cmp * sortState.dir;
+    });
+  }
+
   function renderTable() {
     let rows = getRows();
     const term = qs("#searchBox", container).value.trim().toLowerCase();
     if (term) rows = rows.filter(r => matchesSearch(r, term));
-    if (cfg.defaultSort) rows = [...rows].sort(cfg.defaultSort);
+    if (sortState) rows = applySort(rows);
+    else if (cfg.defaultSort) rows = [...rows].sort(cfg.defaultSort);
 
     const tbody = qs("#dataTable tbody", container);
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="${cfg.columns.length + 1}"><div class="table-empty">${cfg.emptyText || "No records found."}</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${cfg.columns.length + 1}">
+        <div class="table-empty">
+          <div class="table-empty__icon">${EMPTY_STATE_ICON}</div>
+          ${cfg.emptyText || "No records found."}
+        </div>
+      </td></tr>`;
     } else {
       tbody.innerHTML = rows.map(row => `
         <tr data-id="${row[cfg.idField]}">
           ${cfg.columns.map(c => `<td>${c.render ? c.render(row) : Fmt.escapeHtml(row[c.key] ?? "-")}</td>`).join("")}
           <td class="col-actions">
+            ${cfg.onPrint ? `<button class="icon-btn icon-btn--print" data-act="print" title="Print">🖨</button>` : ""}
             <button class="icon-btn" data-act="edit" title="Edit">✎</button>
             <button class="icon-btn icon-btn--danger" data-act="del" title="Delete">🗑</button>
           </td>
@@ -176,6 +206,11 @@ function renderCrudPage(container, cfg) {
       if (editBtn) editBtn.addEventListener("click", () => selectRow(id));
       const delBtn = tr.querySelector('[data-act="del"]');
       if (delBtn) delBtn.addEventListener("click", () => doDelete(id));
+      const printBtn = tr.querySelector('[data-act="print"]');
+      if (printBtn) printBtn.addEventListener("click", () => {
+        const row = DB.readAll(cfg.table).find(r => r[cfg.idField] === id);
+        if (row) cfg.onPrint(row);
+      });
     });
   }
 
@@ -278,6 +313,82 @@ function renderCrudPage(container, cfg) {
     Toast.success("CSV exported!");
   }
 
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n" || c === "\r") {
+          if (c === "\r" && text[i + 1] === "\n") i++;
+          row.push(field); rows.push(row); row = []; field = "";
+        } else field += c;
+      }
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(v => v.trim() !== ""));
+  }
+
+  async function importCsv(file) {
+    const text = await file.text();
+    const rows = parseCsv(text);
+    if (rows.length < 2) { Toast.warning("CSV file looks empty."); return; }
+
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const importableFields = cfg.fields.filter(f => f.type !== "checkbox" || true);
+    const fieldByHeader = {};
+    importableFields.forEach(f => {
+      const idx = headers.indexOf(f.name.toLowerCase()) >= 0 ? headers.indexOf(f.name.toLowerCase()) : headers.indexOf(f.label.toLowerCase());
+      if (idx >= 0) fieldByHeader[f.name] = idx;
+    });
+
+    if (Object.keys(fieldByHeader).length === 0) {
+      Toast.error(`No matching columns found. Expected headers like: ${cfg.fields.map(f => f.name).join(", ")}`);
+      return;
+    }
+
+    let imported = 0, skipped = 0;
+    const existingRows = DB.readAll(cfg.table);
+
+    for (let i = 1; i < rows.length; i++) {
+      const raw = rows[i];
+      const data = {};
+      cfg.fields.forEach(f => {
+        const idx = fieldByHeader[f.name];
+        let v = idx !== undefined ? (raw[idx] || "").trim() : (f.default !== undefined ? f.default : "");
+        if (f.type === "number") v = v === "" ? "" : Number(v);
+        if (f.type === "checkbox") v = /^(true|1|yes)$/i.test(String(v));
+        data[f.name] = v;
+      });
+
+      const missingRequired = cfg.fields.some(f => f.required && f.type !== "checkbox" && (data[f.name] === "" || data[f.name] === undefined));
+      if (missingRequired) { skipped++; continue; }
+
+      if (cfg.beforeSave) {
+        const res = cfg.beforeSave(data, false);
+        if (res && res.error) { skipped++; continue; }
+      }
+
+      const newRow = { [cfg.idField]: DB.nextId(cfg.table), ...data };
+      if (cfg.onCreate) cfg.onCreate(newRow);
+      existingRows.push(newRow);
+      imported++;
+    }
+
+    DB.writeAll(cfg.table, existingRows);
+    renderTable();
+    if (cfg.onChange) cfg.onChange();
+    if (imported > 0) Toast.success(`Imported ${imported} record${imported === 1 ? "" : "s"}.${skipped ? ` (${skipped} skipped — missing required fields.)` : ""}`);
+    else Toast.error(`No rows imported. ${skipped} row(s) skipped — check required fields match your CSV.`);
+  }
+
   qs("#btnSave", container).addEventListener("click", doSave);
   qs("#btnUpdate", container).addEventListener("click", doUpdate);
   qs("#btnDelete", container).addEventListener("click", () => editingId && doDelete(editingId));
@@ -285,6 +396,31 @@ function renderCrudPage(container, cfg) {
   qs("#btnRefresh", container).addEventListener("click", () => { qs("#searchBox", container).value = ""; renderTable(); Toast.info("List refreshed."); });
   qs("#btnExport", container).addEventListener("click", exportCsv);
   qs("#searchBox", container).addEventListener("input", debounce(renderTable, 200));
+
+  qsa("#dataTable thead th.sortable", container).forEach(th => {
+    th.addEventListener("click", () => {
+      const idx = Number(th.dataset.col);
+      if (sortState && sortState.colIndex === idx) {
+        sortState.dir = sortState.dir === 1 ? -1 : 1;
+      } else {
+        sortState = { colIndex: idx, dir: 1 };
+      }
+      qsa("#dataTable thead th", container).forEach(h => h.classList.remove("sort-asc", "sort-desc"));
+      th.classList.add(sortState.dir === 1 ? "sort-asc" : "sort-desc");
+      qs(".sort-arrow", th).textContent = sortState.dir === 1 ? "▲" : "▼";
+      renderTable();
+    });
+  });
+
+  if (cfg.csvImport) {
+    qs("#btnImportCsv", container).addEventListener("click", () => qs("#csvFile", container).click());
+    qs("#csvFile", container).addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      await importCsv(file);
+    });
+  }
 
   clearForm();
   renderTable();

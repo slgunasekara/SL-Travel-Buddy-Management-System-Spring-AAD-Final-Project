@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { hash: "#/buses", icon: "bus", label: "Manage Bus" },
   { hash: "#/trips", icon: "route", label: "Manage Trip" },
   { hash: "#/events", icon: "calendar", label: "Event Bookings" },
+  { hash: "#/customers", icon: "users", label: "Customers" },
   { hash: "#/trip-expenses", icon: "receipt", label: "Trip Expenses" },
   { hash: "#/employees", icon: "users", label: "Employee" },
   { hash: "#/salaries", icon: "wallet", label: "Employee Salary" },
@@ -16,7 +17,8 @@ const NAV_ITEMS = [
   { hash: "#/prices", icon: "trend", label: "Update Prices" },
   { hash: "#/reports", icon: "chart", label: "Reports" },
   { hash: "#/tools", icon: "tool", label: "Tools" },
-  { hash: "#/users", icon: "shield", label: "Manage User", ownerOnly: true }
+  { hash: "#/users", icon: "shield", label: "Manage User", ownerOnly: true },
+  { hash: "#/settings", icon: "settings", label: "Settings" }
 ];
 
 const ICONS = {
@@ -36,7 +38,11 @@ const ICONS = {
   shield: '<path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   bell: '<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
-  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  moon: '<path d="M21 12.5A8.5 8.5 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M5 5l1.4 1.4M17.6 17.6L19 19M3 12h2M19 12h2M5 19l1.4-1.4M17.6 6.4L19 5"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"/>',
+  chevronsLeft: '<path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>'
 };
 
 function icon(name, cls = "") {
@@ -54,9 +60,11 @@ const Router = (() => {
   function buildShell() {
     const user = Session.currentUser();
     const app = qs("#app");
+    const collapsed = localStorage.getItem("bms_sidebar_collapsed") === "1";
     app.innerHTML = `
       <div class="shell">
-        <aside class="sidebar" id="sidebar">
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+        <aside class="sidebar ${collapsed ? "collapsed" : ""}" id="sidebar">
           <div class="sidebar__brand">
             <div class="brand-mark">
               <img src="assets/SLTravelBuddy.png" alt="SL Travel Buddy Logo" class="logo"
@@ -67,6 +75,7 @@ const Router = (() => {
               <strong>SL Travel Buddy</strong>
               <span>Fleet Management OS</span>
             </div>
+            <button class="sidebar__mobile-close" id="btnCloseSidebar" aria-label="Close menu">&times;</button>
           </div>
           <nav class="sidebar__nav" id="sidebarNav"></nav>
           <div class="sidebar__footer">
@@ -77,7 +86,8 @@ const Router = (() => {
                 <span>${Fmt.escapeHtml(user?.role || "")}</span>
               </div>
             </div>
-            <button class="btn btn--ghost btn--block" id="btnLogout">${icon("logout")} Logout</button>
+            <button class="btn btn--ghost btn--block" id="btnLogout">${icon("logout")} <span>Logout</span></button>
+            <button class="sidebar-collapse-btn btn btn--ghost btn--sm" id="btnCollapseSidebar" title="Collapse sidebar">${icon("chevronsLeft")}</button>
           </div>
         </aside>
         <div class="main">
@@ -87,6 +97,18 @@ const Router = (() => {
             </button>
             <div class="topbar__title" id="pageTitle">Dashboard</div>
             <div class="topbar__right">
+              <div class="search-trigger-wrap">
+                <button class="search-trigger" id="searchTrigger" title="Search (Ctrl+K)" aria-label="Open search">
+                  ${icon("search")}
+                </button>
+              </div>
+              <button class="bell-trigger" id="bellTrigger" title="Notifications" aria-label="Open notifications">
+                ${icon("bell")}
+              </button>
+              <button class="theme-trigger" id="themeTrigger" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <span class="icon--moon">${icon("moon")}</span>
+                <span class="icon--sun">${icon("sun")}</span>
+              </button>
               <button class="calc-trigger" id="calcTrigger" title="Quick Calculator" aria-label="Open quick calculator">
                 ${icon("tool")}
               </button>
@@ -99,7 +121,7 @@ const Router = (() => {
 
     const nav = qs("#sidebarNav");
     nav.innerHTML = NAV_ITEMS.filter(i => !i.ownerOnly || Session.isOwner()).map(i => `
-      <a href="${i.hash}" class="sidebar__link" data-hash="${i.hash}">
+      <a href="${i.hash}" class="sidebar__link" data-hash="${i.hash}" title="${i.label}">
         ${icon(i.icon)}<span>${i.label}</span>
       </a>`).join("");
 
@@ -108,11 +130,39 @@ const Router = (() => {
       if (ok) { Session.clear(); location.hash = ""; location.reload(); }
     });
 
-    qs("#burger").addEventListener("click", () => qs("#sidebar").classList.toggle("open"));
+    function setSidebarOpen(isOpen) {
+      qs("#sidebar").classList.toggle("open", isOpen);
+      qs("#sidebarBackdrop").classList.toggle("show", isOpen);
+    }
+    qs("#burger").addEventListener("click", () => setSidebarOpen(!qs("#sidebar").classList.contains("open")));
+    qs("#btnCloseSidebar").addEventListener("click", () => setSidebarOpen(false));
+    qs("#sidebarBackdrop").addEventListener("click", () => setSidebarOpen(false));
+
+    qs("#btnCollapseSidebar").addEventListener("click", () => {
+      const sb = qs("#sidebar");
+      sb.classList.toggle("collapsed");
+      localStorage.setItem("bms_sidebar_collapsed", sb.classList.contains("collapsed") ? "1" : "0");
+    });
 
     qs("#calcTrigger").addEventListener("click", (e) => {
       e.stopPropagation();
       QuickCalc.toggle(qs("#calcTrigger"));
+    });
+
+    qs("#searchTrigger").addEventListener("click", (e) => {
+      e.stopPropagation();
+      GlobalSearch.toggle();
+    });
+
+    qs("#bellTrigger").addEventListener("click", (e) => {
+      e.stopPropagation();
+      Notifications.toggle(qs("#bellTrigger"));
+    });
+    Notifications.updateBadge(qs("#bellTrigger"));
+
+    qs("#themeTrigger").addEventListener("click", (e) => {
+      e.stopPropagation();
+      Theme.toggle();
     });
 
     function tickClock() {
@@ -126,7 +176,7 @@ const Router = (() => {
 
   function setActive(hash) {
     qsa(".sidebar__link").forEach(a => a.classList.toggle("active", a.dataset.hash === hash));
-    qsa(".sidebar__link").forEach(a => a.addEventListener("click", () => qs("#sidebar").classList.remove("open")));
+    qsa(".sidebar__link").forEach(a => a.addEventListener("click", () => { qs("#sidebar").classList.remove("open"); qs("#sidebarBackdrop")?.classList.remove("show"); }));
   }
 
   function render() {
@@ -146,6 +196,7 @@ const Router = (() => {
     qs("#content").innerHTML = "";
     match(qs("#content"));
     if (typeof Reveal !== "undefined") Reveal.scan(qs("#content"));
+    if (typeof Notifications !== "undefined" && qs("#bellTrigger")) Notifications.updateBadge(qs("#bellTrigger"));
   }
 
   function start() {

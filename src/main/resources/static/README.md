@@ -58,6 +58,48 @@ localStorage.clear(); location.reload();
   Google Maps directions
 - Manage Users — Owner-only system user administration
 
+## New since the original build
+- **Customers** — a dedicated customer database (separate from Event
+  Bookings), showing how many bookings each customer has made
+- **Settings** — appearance (dark mode), full data backup/restore, and a
+  "reset to demo data" option
+- **Dark Mode** — toggle in the top bar (🌙/☀️), persisted per device
+- **Global Search (Ctrl/Cmd+K)** — jump straight to any bus, trip,
+  employee, or customer, or to any page, from anywhere in the app
+- **Sidebar collapse** — a chevron button collapses the sidebar to
+  icon-only on desktop, for more screen space
+- **Sortable table columns** — click any column header to sort ascending/
+  descending
+- **Data Backup & Restore (JSON)** — since everything is stored in the
+  browser, Settings → "Export All Data" downloads a full JSON backup, and
+  "Import Backup" restores it (useful before clearing browser data or
+  switching devices)
+- **Notification Bell** — the same fleet/document alerts from the
+  dashboard are now reachable from a bell icon on every page
+- **Bus Service Reminders** — in addition to insurance/license expiry,
+  the app now flags buses that are overdue (or due soon) for maintenance,
+  based on the last service's date and mileage
+- **Print / Receipt Generator** — a 🖨 icon on Event Bookings and Trips
+  opens a clean, print-ready receipt in a new tab (use the browser's
+  "Save as PDF" if you want a file — no backend needed)
+- **Trip Calendar View** — a Table/Calendar toggle on the Trips page
+  shows a month calendar with a trip-count badge per day; click a day to
+  filter the table to just that date
+- **CSV Import** — Bus and Employee pages have an "Import CSV" button
+  (next to Export CSV) for bulk-adding records from a spreadsheet
+- **Expense Breakdown Pie Chart** — Reports → Overview now shows a donut
+  chart of trip expenses / salaries / maintenance / parts / other
+  services for the selected date range
+- **Top Routes / Top Drivers Leaderboard** — Reports → Leaderboard ranks
+  routes by income and drivers by trip count
+- **Month-over-Month Comparison** — the dashboard shows this month vs
+  last month for income, expenses, profit, and trip count, with %
+  change indicators
+- **Better empty states** — list pages show a simple icon instead of
+  plain text when there's no data yet
+- **Real logo** — the SL Travel Buddy logo now appears on the login
+  screen, the sidebar, and the browser tab favicon
+
 ## Sending real OTP emails (optional but recommended)
 By default, "Forgot password" generates and validates a real OTP exactly
 like the desktop app did, but shows it on-screen instead of emailing it —

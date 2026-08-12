@@ -30,6 +30,7 @@ function renderBusPage(container) {
     searchKeys: ["busBrandName", "busNumber", "busType", "busStatus"],
     defaultSort: (a, b) => b.busId - a.busId,
     emptyText: "No buses yet — add your first bus above.",
+    csvImport: true,
     beforeSave(data, isEdit, id) {
       if (Validate.isEmpty(data.busNumber)) return { error: "Bus number is required." };
       const buses = DB.readAll("buses");

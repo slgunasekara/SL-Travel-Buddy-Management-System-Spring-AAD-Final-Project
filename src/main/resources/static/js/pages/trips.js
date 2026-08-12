@@ -66,15 +66,20 @@ function renderTripsPage(container) {
         <div class="search-box">${icon("search", "search-ic")}<input type="text" id="searchBox" placeholder="Search trips..." /></div>
         <div class="table-toolbar__right">
           <span class="pill" id="rowCount">0 records</span>
+          <div class="view-toggle">
+            <button id="viewTableBtn" class="active">Table</button>
+            <button id="viewCalendarBtn">Calendar</button>
+          </div>
           <button class="btn btn--ghost btn--sm" id="btnRefresh">Refresh</button>
         </div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" id="tableViewWrap">
         <table class="data-table" id="dataTable">
           <thead><tr><th>ID</th><th>Category</th><th>Bus</th><th>Route</th><th>Distance</th><th>Income</th><th>Date</th><th>Crew</th><th class="col-actions">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
+      <div id="calendarViewWrap" style="display:none"></div>
     </div>`;
 
   function readForm() {
@@ -141,7 +146,7 @@ function renderTripsPage(container) {
 
     const tbody = qs("#dataTable tbody");
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9"><div class="table-empty">No trips logged yet — add your first trip above.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9"><div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips logged yet — add your first trip above.</div></td></tr>`;
     } else {
       tbody.innerHTML = rows.map(t => `
         <tr data-id="${t.tripId}">
@@ -154,6 +159,7 @@ function renderTripsPage(container) {
           <td>${Fmt.date(t.tripDate)}</td>
           <td>${crewSummary(t.tripId)}</td>
           <td class="col-actions">
+            <button class="icon-btn icon-btn--print" data-act="print" title="Print Receipt">🖨</button>
             <button class="icon-btn" data-act="crew" title="Assign Crew">👥</button>
             <button class="icon-btn" data-act="edit" title="Edit">✎</button>
             <button class="icon-btn icon-btn--danger" data-act="del" title="Delete">🗑</button>
@@ -168,6 +174,11 @@ function renderTripsPage(container) {
       tr.querySelector('[data-act="edit"]').addEventListener("click", () => selectRow(id));
       tr.querySelector('[data-act="del"]').addEventListener("click", () => doDelete(id));
       tr.querySelector('[data-act="crew"]').addEventListener("click", () => openCrewModal(id));
+      tr.querySelector('[data-act="print"]').addEventListener("click", () => {
+        const t = DB.readAll("trips").find(x => x.tripId === id);
+        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${te.roleInTrip})`).join(", ");
+        PrintReceipt.tripReceipt(t, Q.busNumber(t.busId), crew);
+      });
     });
   }
 
@@ -294,6 +305,116 @@ function renderTripsPage(container) {
   qs("#btnReset").addEventListener("click", clearForm);
   qs("#btnRefresh").addEventListener("click", () => { qs("#searchBox").value = ""; renderTable(); });
   qs("#searchBox").addEventListener("input", debounce(renderTable, 200));
+
+  /* ---- Calendar view (additive; table view + all CRUD above is unchanged) ---- */
+  let calendarCursor = new Date();
+  calendarCursor.setDate(1);
+
+  function renderCalendar() {
+    const host = qs("#calendarViewWrap");
+    const year = calendarCursor.getFullYear();
+    const month = calendarCursor.getMonth();
+    const monthLabel = calendarCursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const firstDow = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStr = DB.today();
+
+    const trips = DB.readAll("trips");
+    const byDate = {};
+    trips.forEach(t => { (byDate[t.tripDate] = byDate[t.tripDate] || []).push(t); });
+
+    let cells = "";
+    for (let i = 0; i < firstDow; i++) cells += `<div class="calendar-cell empty"></div>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const dayTrips = byDate[dateStr] || [];
+      const isToday = dateStr === todayStr;
+      cells += `
+        <div class="calendar-cell ${isToday ? "today" : ""}" data-date="${dateStr}">
+          <span class="calendar-cell__num">${d}</span>
+          ${dayTrips.length ? `<span class="calendar-cell__badge">${dayTrips.length} trip${dayTrips.length === 1 ? "" : "s"}</span>` : ""}
+        </div>`;
+    }
+
+    host.innerHTML = `
+      <div class="calendar-head">
+        <h3>${monthLabel}</h3>
+        <div class="calendar-nav">
+          <button class="btn btn--ghost btn--sm" id="calPrev">‹ Prev</button>
+          <button class="btn btn--ghost btn--sm" id="calToday">Today</button>
+          <button class="btn btn--ghost btn--sm" id="calNext">Next ›</button>
+        </div>
+      </div>
+      <div class="calendar-grid">
+        ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => `<div class="calendar-dow">${d}</div>`).join("")}
+        ${cells}
+      </div>`;
+
+    qs("#calPrev").addEventListener("click", () => { calendarCursor.setMonth(calendarCursor.getMonth() - 1); renderCalendar(); });
+    qs("#calNext").addEventListener("click", () => { calendarCursor.setMonth(calendarCursor.getMonth() + 1); renderCalendar(); });
+    qs("#calToday").addEventListener("click", () => { calendarCursor = new Date(); calendarCursor.setDate(1); renderCalendar(); });
+
+    qsa(".calendar-cell[data-date]").forEach(cell => {
+      cell.addEventListener("click", () => {
+        // Jump back to table view, filtered to that day's trips.
+        const date = cell.dataset.date;
+        qs("#viewTableBtn").click();
+        renderTableFilteredByDate(date);
+      });
+    });
+  }
+
+  function renderTableFilteredByDate(dateStr) {
+    let rows = DB.readAll("trips").filter(t => t.tripDate === dateStr);
+    rows = [...rows].sort((a, b) => b.tripId - a.tripId);
+    const tbody = qs("#dataTable tbody");
+    tbody.innerHTML = rows.length === 0
+      ? `<tr><td colspan="9"><div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips on ${Fmt.date(dateStr)}.</div></td></tr>`
+      : rows.map(t => `
+        <tr data-id="${t.tripId}">
+          <td>${t.tripId}</td>
+          <td><span class="badge badge--blue">${t.tripCategory}</span></td>
+          <td>${Q.busNumber(t.busId)}</td>
+          <td>${Fmt.escapeHtml(t.startLocation)} → ${Fmt.escapeHtml(t.endLocation)}</td>
+          <td>${t.distance ? t.distance + " km" : "-"}</td>
+          <td>${Fmt.money(t.totalIncome)}</td>
+          <td>${Fmt.date(t.tripDate)}</td>
+          <td>${crewSummary(t.tripId)}</td>
+          <td class="col-actions">
+            <button class="icon-btn icon-btn--print" data-act="print" title="Print Receipt">🖨</button>
+            <button class="icon-btn" data-act="crew" title="Assign Crew">👥</button>
+            <button class="icon-btn" data-act="edit" title="Edit">✎</button>
+            <button class="icon-btn icon-btn--danger" data-act="del" title="Delete">🗑</button>
+          </td>
+        </tr>`).join("");
+    qs("#rowCount").textContent = `${rows.length} record${rows.length === 1 ? "" : "s"} on ${Fmt.date(dateStr)}`;
+    qsa("#dataTable tbody tr[data-id]").forEach(tr => {
+      const id = Number(tr.dataset.id);
+      tr.addEventListener("click", (e) => { if (!e.target.closest("[data-act]")) selectRow(id); });
+      tr.querySelector('[data-act="edit"]').addEventListener("click", () => selectRow(id));
+      tr.querySelector('[data-act="del"]').addEventListener("click", () => doDelete(id));
+      tr.querySelector('[data-act="crew"]').addEventListener("click", () => openCrewModal(id));
+      tr.querySelector('[data-act="print"]').addEventListener("click", () => {
+        const t = DB.readAll("trips").find(x => x.tripId === id);
+        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${te.roleInTrip})`).join(", ");
+        PrintReceipt.tripReceipt(t, Q.busNumber(t.busId), crew);
+      });
+    });
+  }
+
+  qs("#viewTableBtn").addEventListener("click", () => {
+    qs("#viewTableBtn").classList.add("active");
+    qs("#viewCalendarBtn").classList.remove("active");
+    qs("#tableViewWrap").style.display = "";
+    qs("#calendarViewWrap").style.display = "none";
+  });
+  qs("#viewCalendarBtn").addEventListener("click", () => {
+    qs("#viewCalendarBtn").classList.add("active");
+    qs("#viewTableBtn").classList.remove("active");
+    qs("#tableViewWrap").style.display = "none";
+    qs("#calendarViewWrap").style.display = "";
+    renderCalendar();
+  });
 
   clearForm();
   renderTable();

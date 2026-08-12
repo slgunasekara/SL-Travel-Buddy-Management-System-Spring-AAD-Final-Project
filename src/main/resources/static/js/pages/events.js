@@ -40,6 +40,7 @@ function renderEventsPage(container) {
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; row.createdAt = DB.nowISO(); row.updatedAt = DB.nowISO(); },
-    onUpdate(row) { row.updatedAt = DB.nowISO(); }
+    onUpdate(row) { row.updatedAt = DB.nowISO(); },
+    onPrint(row) { PrintReceipt.eventReceipt(row, Q.busNumber(row.busId)); }
   });
 }

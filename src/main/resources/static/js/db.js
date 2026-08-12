@@ -13,7 +13,7 @@ const DB = (() => {
   const TABLES = [
     "users", "buses", "employees", "trips", "tripEmployees", "tripExpenses",
     "employeeSalaries", "maintenance", "partPurchases", "otherServices",
-    "events", "updatePrices", "passwordResetOtps"
+    "events", "updatePrices", "passwordResetOtps", "customers"
   ];
 
   function key(table) { return PREFIX + table; }
@@ -79,6 +79,7 @@ const DB = (() => {
     writeAll("otherServices", []);
     writeAll("events", []);
     writeAll("passwordResetOtps", []);
+    writeAll("customers", []);
 
     localStorage.setItem(PREFIX + "seeded", "1");
   }
