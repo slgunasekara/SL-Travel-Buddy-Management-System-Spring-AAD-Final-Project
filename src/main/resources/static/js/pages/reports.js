@@ -128,27 +128,30 @@ function renderReportsPage(container) {
         ${summaryCardsHtml()}
         <div class="card">
           <div class="table-toolbar"><h3>Income Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
+          <p class="muted" style="padding:0 16px 4px;">Includes both scheduled Trips and private-hire Event Bookings.</p>
           <div class="table-wrap"><table class="data-table">
-            <thead><tr><th>Trip ID</th><th>Bus</th><th>Date</th><th>Income</th></tr></thead>
-            <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${r.busNumber}</td><td>${Fmt.date(r.tripDate)}</td><td>${Fmt.money(r.totalIncome)}</td></tr>`).join("") : `<tr><td colspan="4"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
+            <thead><tr><th>ID</th><th>Source</th><th>Bus</th><th>Date</th><th>Income</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>${r.tripId}</td><td><span class="badge badge--${r.source === "EVENT" ? "amber" : "blue"}">${r.source}</span></td><td>${r.busNumber}</td><td>${Fmt.date(r.tripDate)}</td><td>${Fmt.money(r.totalIncome)}</td></tr>`).join("") : `<tr><td colspan="5"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
-      qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Bus", "Date", "Income"], rows.map(r => [r.tripId, r.busNumber, r.tripDate, r.totalIncome]), `income_report_${fromDate}_${toDate}.csv`));
+      qs("#exp")?.addEventListener("click", () => exportTable(["ID", "Source", "Bus", "Date", "Income"], rows.map(r => [r.tripId, r.source, r.busNumber, r.tripDate, r.totalIncome]), `income_report_${fromDate}_${toDate}.csv`));
       qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
         docTitle: "Income Report", heading: "Income Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
-        columns: ["Trip ID", "Bus", "Date", "Income"],
-        rows: rows.map(r => [`#${r.tripId}`, r.busNumber, Fmt.date(r.tripDate), Fmt.money(r.totalIncome)]),
-        totalLabel: "Total Income", totalValue: Fmt.money(rows.reduce((a, r) => a + r.totalIncome, 0))
+        columns: ["ID", "Source", "Bus", "Date", "Income"],
+        rows: rows.map(r => [r.tripId, r.source, r.busNumber, Fmt.date(r.tripDate), Fmt.money(r.totalIncome)]),
+        totalLabel: "Total Income", totalValue: Fmt.money(rows.reduce((a, r) => a + Number(r.totalIncome), 0))
       }));
       return;
     }
 
     if (activeTab === "expense") {
       const rows = Q.expenseReport(fromDate, toDate);
+      const expenseRowsTotal = rows.reduce((a, r) => a + Number(r.amount), 0);
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
           <div class="table-toolbar"><h3>Expense Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
+          <p class="muted" style="padding:0 16px 4px;">Covers Trip Expenses, Maintenance, Parts and Other Services — total below: <strong>${Fmt.money(expenseRowsTotal)}</strong>. Salary payments are reported separately under the Salary Report tab (the "Total Expenses" card above includes salary).</p>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.date(r.expenseDate)}</td><td><span class="badge badge--gray">${r.category}</span></td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No expenses in this range.</div></td></tr>`}</tbody>
@@ -330,7 +333,11 @@ function renderReportsPage(container) {
 
   function yearOptions(selected) {
     const trips = DB.readAll("trips");
-    const years = new Set(trips.map(t => Number(t.tripDate.slice(0, 4))));
+    const events = DB.readAll("events");
+    const years = new Set([
+      ...trips.map(t => Number(t.tripDate.slice(0, 4))),
+      ...events.map(e => e.eventDate ? Number(e.eventDate.slice(0, 4)) : null).filter(Boolean)
+    ]);
     years.add(new Date().getFullYear());
     years.add(selected);
     return [...years].sort((a, b) => b - a).map(y => `<option value="${y}" ${y === selected ? "selected" : ""}>${y}</option>`).join("");

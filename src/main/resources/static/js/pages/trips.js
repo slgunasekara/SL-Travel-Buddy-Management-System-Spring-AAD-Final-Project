@@ -196,7 +196,8 @@ function renderTripsPage(container) {
   async function doDelete(id) {
     const hasExpenses = DB.readAll("tripExpenses").some(e => e.tripId === id);
     const hasSalary = DB.readAll("employeeSalaries").some(s => s.tripId === id);
-    if (hasExpenses || hasSalary) { Toast.error("Cannot delete this trip — it has linked expenses or salary records."); return; }
+    const hasServices = DB.readAll("otherServices").some(s => s.tripId === id);
+    if (hasExpenses || hasSalary || hasServices) { Toast.error("Cannot delete this trip — it has linked expenses, salary records, or other service records."); return; }
     const ok = await confirmDialog({ title: "Delete Trip", message: "This will also remove crew assignments for this trip. Continue?", okText: "Delete", danger: true });
     if (!ok) return;
     DB.writeAll("trips", DB.readAll("trips").filter(t => t.tripId !== id));
@@ -210,11 +211,11 @@ function renderTripsPage(container) {
     const trip = DB.readAll("trips").find(t => t.tripId === tripId);
     const employees = DB.readAll("employees").filter(e => e.empStatus === "ACTIVE");
     const currentCrew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
-    const drivers = currentCrew.filter(te => te.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
+    const driverSlots = Q.driverSlotsForTrip(tripId);
 
     const SLOTS = [
-      { key: "driver1", label: "Driver 1", role: "DRIVER", existing: drivers[0] || null },
-      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER", existing: drivers[1] || null },
+      { key: "driver1", label: "Driver 1", role: "DRIVER", driverSlot: 1, existing: driverSlots.driver1 },
+      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER", driverSlot: 2, existing: driverSlots.driver2 },
       { key: "conductor", label: "Conductor", role: "CONDUCTOR", existing: currentCrew.find(te => te.roleInTrip === "CONDUCTOR") || null },
       { key: "helper", label: "Helper", role: "HELPER", existing: currentCrew.find(te => te.roleInTrip === "HELPER") || null },
       { key: "cleaner", label: "Cleaner", role: "CLEANER", existing: currentCrew.find(te => te.roleInTrip === "CLEANER") || null }
@@ -290,12 +291,18 @@ function renderTripsPage(container) {
               all = all.filter(te => te.tripEmpId !== existingRec.tripEmpId);
               changed++;
             } else if (newEmpId && !existingRec) {
-              all.push({ tripEmpId: DB.nextId("tripEmployees"), tripId, empId: newEmpId, roleInTrip: s.role, assignedDate: DB.nowISO(), createdBy: Session.currentUser().userId });
+              all.push({ tripEmpId: DB.nextId("tripEmployees"), tripId, empId: newEmpId, roleInTrip: s.role, driverSlot: s.driverSlot || null, assignedDate: DB.nowISO(), createdBy: Session.currentUser().userId });
               changed++;
             } else if (newEmpId && existingRec && existingRec.empId !== newEmpId) {
               const idx = all.findIndex(te => te.tripEmpId === existingRec.tripEmpId);
-              if (idx >= 0) all[idx] = { ...all[idx], empId: newEmpId };
+              if (idx >= 0) all[idx] = { ...all[idx], empId: newEmpId, driverSlot: s.driverSlot || existingRec.driverSlot || null };
               changed++;
+            } else if (newEmpId && existingRec && s.driverSlot && existingRec.driverSlot !== s.driverSlot) {
+              // Same person, but this record predates driverSlot tracking — quietly stamp it
+              // now so the Driver 1 / Driver 2 label stays stable on future edits. Not counted
+              // as a user-visible change (no "Crew updated!" toast just for this).
+              const idx = all.findIndex(te => te.tripEmpId === existingRec.tripEmpId);
+              if (idx >= 0) all[idx] = { ...all[idx], driverSlot: s.driverSlot };
             }
           });
           DB.writeAll("tripEmployees", all);
@@ -448,4 +455,13 @@ function renderTripsPage(container) {
 
   clearForm();
   renderTable();
+
+  // Jump straight to one trip when arriving via a link that carries
+  // "?id=" (e.g. a Global Search result) instead of just landing on the
+  // unfiltered list.
+  const focusIdRaw = hashQueryParam("id");
+  if (focusIdRaw !== null) {
+    const focusId = Number(focusIdRaw);
+    if (!isNaN(focusId) && DB.readAll("trips").some(t => t.tripId === focusId)) selectRow(focusId);
+  }
 }

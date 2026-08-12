@@ -41,6 +41,11 @@ const Q = (() => {
       b.tripIds.add(t.tripId);
     });
 
+    // Event Bookings (private hires/charters) carry their own income —
+    // previously never added to any total anywhere in the app.
+    const events = DB.readAll("events").filter(e => e.eventDate >= fromDate && e.eventDate <= toDate);
+    events.forEach(e => { bucket(e.eventDate).totalIncome += Number(e.eventValue) || 0; });
+
     // trip expenses attach to the date of their trip (LEFT JOIN on trip_id)
     const tripDateMap = {};
     DB.readAll("trips").forEach(t => tripDateMap[t.tripId] = t.tripDate);
@@ -91,19 +96,20 @@ const Q = (() => {
 
   function allDailyProfit() {
     const trips = DB.readAll("trips");
-    if (trips.length === 0) return [];
-    const min = trips.reduce((m, t) => t.tripDate < m ? t.tripDate : m, trips[0].tripDate);
-    const max = trips.reduce((m, t) => t.tripDate > m ? t.tripDate : m, trips[0].tripDate);
+    const events = DB.readAll("events");
+    const dates = [...trips.map(t => t.tripDate), ...events.map(e => e.eventDate)].filter(Boolean);
+    if (dates.length === 0) return [];
+    const min = dates.reduce((m, d) => d < m ? d : m, dates[0]);
+    const max = dates.reduce((m, d) => d > m ? d : m, dates[0]);
     return dailyProfitByRange(min, max);
   }
 
   function monthlyProfit(year) {
     const trips = DB.readAll("trips").filter(t => t.tripDate.startsWith(String(year)));
+    const events = DB.readAll("events").filter(e => e.eventDate && e.eventDate.startsWith(String(year)));
     const months = {};
-    trips.forEach(t => {
-      const ym = t.tripDate.slice(0, 7);
-      if (!months[ym]) months[ym] = true;
-    });
+    trips.forEach(t => { months[t.tripDate.slice(0, 7)] = true; });
+    events.forEach(e => { months[e.eventDate.slice(0, 7)] = true; });
     return Object.keys(months).sort().reverse().map(ym => {
       const firstDay = ym + "-01";
       const lastDay = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)), 0).toISOString().slice(0,10);
@@ -165,21 +171,38 @@ const Q = (() => {
   }
 
   function incomeReport(fromDate, toDate) {
-    return DB.readAll("trips")
+    const tripRows = DB.readAll("trips")
       .filter(t => t.tripDate >= fromDate && t.tripDate <= toDate)
-      .map(t => ({ tripId: t.tripId, busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }))
-      .sort((a, b) => b.tripDate.localeCompare(a.tripDate));
+      .map(t => ({ tripId: `#${t.tripId}`, source: "TRIP", busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }));
+    const eventRows = DB.readAll("events")
+      .filter(e => e.eventDate >= fromDate && e.eventDate <= toDate)
+      .map(e => ({ tripId: `EVT-${e.eventId}`, source: "EVENT", busNumber: busNumber(e.busId), tripDate: e.eventDate, totalIncome: e.eventValue }));
+    return [...tripRows, ...eventRows].sort((a, b) => b.tripDate.localeCompare(a.tripDate));
   }
 
   function expenseReport(fromDate, toDate) {
+    // Every non-salary expense category (Salary has its own dedicated
+    // Salary Report tab) so the rows here add up to the same "Total
+    // Expenses minus Salary" figure the Overview/summary cards use —
+    // previously this only listed Trip Expenses (Fuel/Parking/Other)
+    // and silently left out Maintenance, Parts and Other Services.
     const rows = [];
     DB.readAll("tripExpenses")
       .filter(e => e.date >= fromDate && e.date <= toDate)
       .forEach(e => {
         if (Number(e.fuelAmount) > 0) rows.push({ expenseDate: e.date, amount: e.fuelAmount, category: "FUEL" });
         if (Number(e.parkingAmount) > 0) rows.push({ expenseDate: e.date, amount: e.parkingAmount, category: "PARKING" });
-        if (Number(e.otherAmount) > 0) rows.push({ expenseDate: e.date, amount: e.otherAmount, category: "OTHERS" });
+        if (Number(e.otherAmount) > 0) rows.push({ expenseDate: e.date, amount: e.otherAmount, category: "TRIP OTHER" });
       });
+    DB.readAll("maintenance")
+      .filter(m => m.serviceDate >= fromDate && m.serviceDate <= toDate)
+      .forEach(m => { if (Number(m.cost) > 0) rows.push({ expenseDate: m.serviceDate, amount: m.cost, category: "MAINTENANCE" }); });
+    DB.readAll("partPurchases")
+      .filter(p => p.date >= fromDate && p.date <= toDate)
+      .forEach(p => { if (Number(p.totalCost) > 0) rows.push({ expenseDate: p.date, amount: p.totalCost, category: "PARTS" }); });
+    DB.readAll("otherServices")
+      .filter(s => s.date >= fromDate && s.date <= toDate)
+      .forEach(s => { if (Number(s.cost) > 0) rows.push({ expenseDate: s.date, amount: s.cost, category: "OTHER SERVICES" }); });
     return rows.sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
   }
 
@@ -254,12 +277,21 @@ const Q = (() => {
   /* ---- Top routes / top drivers leaderboards ---- */
   function topRoutes(fromDate, toDate, limit = 5) {
     const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
+    const events = DB.readAll("events").filter(e => e.eventDate >= fromDate && e.eventDate <= toDate);
     const map = {};
     trips.forEach(t => {
       const key = `${t.startLocation} → ${t.endLocation}`;
       if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
       map[key].trips += 1;
       map[key].income += Number(t.totalIncome) || 0;
+    });
+    // Event Bookings run point-to-point routes too — count their income
+    // here so a popular charter route isn't invisible on the leaderboard.
+    events.forEach(e => {
+      const key = `${e.startLocation} → ${e.endLocation}`;
+      if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
+      map[key].trips += 1;
+      map[key].income += Number(e.eventValue) || 0;
     });
     return Object.values(map).sort((a, b) => b.income - a.income).slice(0, limit);
   }
@@ -336,10 +368,41 @@ const Q = (() => {
     ].filter(x => x.value > 0);
   }
 
-  /* ---- Customers: bookings linked by NIC match against Event records ---- */
-  function customerBookingsCount(nic) {
-    if (!nic) return 0;
-    return DB.readAll("events").filter(e => e.customerNic && e.customerNic.trim().toLowerCase() === nic.trim().toLowerCase()).length;
+  /* ---- Customers: bookings linked by NIC match against Event records,
+     falling back to Contact Number when the customer has no NIC on file
+     (NIC is optional on the Customers page) so their booking count isn't
+     stuck at zero just because they were added without one. ---- */
+  function customerBookingsCount(nic, contact) {
+    const events = DB.readAll("events");
+    if (nic) {
+      const byNic = events.filter(e => e.customerNic && e.customerNic.trim().toLowerCase() === nic.trim().toLowerCase()).length;
+      if (byNic > 0) return byNic;
+    }
+    if (contact) {
+      return events.filter(e => e.customerContact && e.customerContact.trim() === contact.trim()).length;
+    }
+    return 0;
+  }
+
+  /* ---- Stable Driver 1 / Driver 2 resolution for a trip's crew.
+     tripEmployees rows carry a `driverSlot` (1 or 2) for DRIVER-role
+     records so the two driver seats keep their identity across edits.
+     Older records saved before this existed have no driverSlot, so as
+     a fallback (only used when NONE of the trip's drivers have a slot
+     yet) we fall back to insertion order — the first driver added
+     stays "Driver 1". Once the crew is saved again it gets a real slot
+     and stops relying on the fallback. ---- */
+  function driverSlotsForTrip(tripId) {
+    const drivers = DB.readAll("tripEmployees").filter(te => te.tripId === tripId && te.roleInTrip === "DRIVER");
+    const hasSlotData = drivers.some(d => d.driverSlot === 1 || d.driverSlot === 2);
+    if (hasSlotData) {
+      return {
+        driver1: drivers.find(d => d.driverSlot === 1) || null,
+        driver2: drivers.find(d => d.driverSlot === 2) || null
+      };
+    }
+    const sorted = [...drivers].sort((a, b) => a.tripEmpId - b.tripEmpId);
+    return { driver1: sorted[0] || null, driver2: sorted[1] || null };
   }
 
   return {
@@ -348,6 +411,6 @@ const Q = (() => {
     dashboardSummary, last30DaysChart, reportSummary,
     incomeReport, expenseReport, salaryReport, tripReport,
     serviceReminders, fleetAlerts, topRoutes, topDrivers, topConductors, momComparison,
-    expenseBreakdown, customerBookingsCount
+    expenseBreakdown, customerBookingsCount, driverSlotsForTrip
   };
 })();

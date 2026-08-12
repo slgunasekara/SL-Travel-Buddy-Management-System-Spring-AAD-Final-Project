@@ -153,7 +153,9 @@ function renderCrudPage(container, cfg) {
       const items = f.source().filter(it => it.label.toLowerCase().includes(term)).slice(0, 8);
       if (items.length === 0) {
         list.innerHTML = strict
-          ? `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`
+          ? (editingId
+              ? `<div class="autocomplete-empty">Keeping the current value for this existing record. Type a different name only if you want to reassign it to someone on this list.</div>`
+              : `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`)
           : `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
       } else {
         list.innerHTML = items.map((it, i) => `
@@ -506,5 +508,15 @@ function renderCrudPage(container, cfg) {
 
   clearForm();
   renderTable();
+
+  // Jump straight to one record when arriving via a link that carries
+  // "?id=" (e.g. a Global Search result) instead of just landing on the
+  // unfiltered list.
+  const focusIdRaw = hashQueryParam("id");
+  if (focusIdRaw !== null) {
+    const focusId = Number(focusIdRaw);
+    if (!isNaN(focusId) && DB.readAll(cfg.table).some(r => r[cfg.idField] === focusId)) selectRow(focusId);
+  }
+
   return { renderTable, clearForm };
 }
