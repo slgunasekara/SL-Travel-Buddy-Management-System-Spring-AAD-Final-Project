@@ -41,11 +41,12 @@ const Q = (() => {
       b.tripIds.add(t.tripId);
     });
 
-    // Event Bookings (private hires/charters) only count toward income once
-    // marked "Completed" — a booking that hasn't actually run yet (or was
-    // cancelled) shouldn't inflate income/profit just for existing.
-    const events = DB.readAll("events").filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate);
-    events.forEach(e => { bucket(e.eventDate).totalIncome += Number(e.eventValue) || 0; });
+    // Event Bookings are NOT counted here — a private-hire booking is
+    // already entered as its own Trip (Trip Category "PRIVATE_TRIP") with
+    // its own income and Trip Expenses, so adding eventValue on top of
+    // that would double-count the same job. Events.linkedTripId lets a
+    // booking reference that Trip record for traceability instead.
+
 
     // trip expenses attach to the date of their trip (LEFT JOIN on trip_id)
     const tripDateMap = {};
@@ -97,20 +98,16 @@ const Q = (() => {
 
   function allDailyProfit() {
     const trips = DB.readAll("trips");
-    const events = DB.readAll("events");
-    const dates = [...trips.map(t => t.tripDate), ...events.map(e => e.eventDate)].filter(Boolean);
-    if (dates.length === 0) return [];
-    const min = dates.reduce((m, d) => d < m ? d : m, dates[0]);
-    const max = dates.reduce((m, d) => d > m ? d : m, dates[0]);
+    if (trips.length === 0) return [];
+    const min = trips.reduce((m, t) => t.tripDate < m ? t.tripDate : m, trips[0].tripDate);
+    const max = trips.reduce((m, t) => t.tripDate > m ? t.tripDate : m, trips[0].tripDate);
     return dailyProfitByRange(min, max);
   }
 
   function monthlyProfit(year) {
     const trips = DB.readAll("trips").filter(t => t.tripDate.startsWith(String(year)));
-    const events = DB.readAll("events").filter(e => e.eventDate && e.eventDate.startsWith(String(year)));
     const months = {};
     trips.forEach(t => { months[t.tripDate.slice(0, 7)] = true; });
-    events.forEach(e => { months[e.eventDate.slice(0, 7)] = true; });
     return Object.keys(months).sort().reverse().map(ym => {
       const firstDay = ym + "-01";
       const lastDay = new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)), 0).toISOString().slice(0,10);
@@ -172,15 +169,13 @@ const Q = (() => {
   }
 
   function incomeReport(fromDate, toDate) {
-    const tripRows = DB.readAll("trips")
+    // Event Bookings aren't listed here — a private-hire booking is
+    // recorded as its own Trip (Trip Category "PRIVATE_TRIP"), so its
+    // income already appears via the Trip rows below.
+    return DB.readAll("trips")
       .filter(t => t.tripDate >= fromDate && t.tripDate <= toDate)
-      .map(t => ({ tripId: `#${t.tripId}`, source: "TRIP", busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }));
-    // Only Completed event bookings count as income — a pending/not-yet-run
-    // booking hasn't earned anything yet.
-    const eventRows = DB.readAll("events")
-      .filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate)
-      .map(e => ({ tripId: `EVT-${e.eventId}`, source: "EVENT", busNumber: busNumber(e.busId), tripDate: e.eventDate, totalIncome: e.eventValue }));
-    return [...tripRows, ...eventRows].sort((a, b) => b.tripDate.localeCompare(a.tripDate));
+      .map(t => ({ tripId: t.tripId, busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }))
+      .sort((a, b) => b.tripDate.localeCompare(a.tripDate));
   }
 
   function expenseReport(fromDate, toDate) {
@@ -279,22 +274,16 @@ const Q = (() => {
 
   /* ---- Top routes / top drivers leaderboards ---- */
   function topRoutes(fromDate, toDate, limit = 5) {
+    // Event Bookings excluded — their route/income already shows up via
+    // the linked "PRIVATE_TRIP" Trip record, so counting both would
+    // double the income for the same job.
     const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
-    const events = DB.readAll("events").filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate);
     const map = {};
     trips.forEach(t => {
       const key = `${t.startLocation} → ${t.endLocation}`;
       if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
       map[key].trips += 1;
       map[key].income += Number(t.totalIncome) || 0;
-    });
-    // Event Bookings run point-to-point routes too — count their income
-    // here so a popular charter route isn't invisible on the leaderboard.
-    events.forEach(e => {
-      const key = `${e.startLocation} → ${e.endLocation}`;
-      if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
-      map[key].trips += 1;
-      map[key].income += Number(e.eventValue) || 0;
     });
     return Object.values(map).sort((a, b) => b.income - a.income).slice(0, limit);
   }

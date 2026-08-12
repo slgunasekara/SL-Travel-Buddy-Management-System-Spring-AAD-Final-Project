@@ -287,6 +287,20 @@ function renderTripsPage(container) {
         });
 
         qs("#btnSaveCrew", overlay).addEventListener("click", () => {
+          // Same person can't fill two different crew slots (or both driver
+          // seats) on one trip — check before touching anything.
+          const picks = SLOTS
+            .map(s => ({ slot: s, empId: qs(`#slot_${s.key}_id`, overlay).value || null }))
+            .filter(p => p.empId);
+          const takenBy = {};
+          for (const p of picks) {
+            if (takenBy[p.empId]) {
+              Toast.error(`${Q.empName(Number(p.empId))} is already assigned as ${takenBy[p.empId]} on this trip — the same person can't fill two crew slots.`);
+              return;
+            }
+            takenBy[p.empId] = p.slot.label;
+          }
+
           let all = DB.readAll("tripEmployees");
           let changed = 0;
           SLOTS.forEach(s => {
