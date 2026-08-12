@@ -64,8 +64,8 @@ const Router = (() => {
               <span class="logo-fallback">${icon("bus")}</span>
             </div>
             <div class="brand-text">
-              <strong>Gunasekara</strong>
-              <span>Travels · Fleet OS</span>
+              <strong>SL Travel Buddy</strong>
+              <span>Fleet Management OS</span>
             </div>
           </div>
           <nav class="sidebar__nav" id="sidebarNav"></nav>

@@ -1,4 +1,4 @@
-# Gunasekara Bus Management System — Web Edition
+# SL Travel Buddy — Bus Management System (Web Edition)
 
 A full front-end replica of the original JavaFX + MySQL desktop application,
 built with **plain HTML, CSS and JavaScript**. All data is stored locally in

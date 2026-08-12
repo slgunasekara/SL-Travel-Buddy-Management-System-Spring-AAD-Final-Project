@@ -1,5 +1,5 @@
 /* =========================================================================
-   db.js — localStorage-backed "database" layer for Gunasekara Bus
+   db.js — localStorage-backed "database" layer for SL Travel Buddy
    Management System (web edition).
 
    Mirrors the original JavaFX + MySQL desktop app's schema (see bus_system.sql)

@@ -34,7 +34,7 @@ const EmailConfig = {
   SERVICE_ID: "service_cuedw6d",
   TEMPLATE_ID: "template_evis7a4",
   PUBLIC_KEY: "9GZGUJSr-1-g_QcV1",
-  APP_NAME: "Gunasekara Travels"
+  APP_NAME: "SL Travel Buddy"
 };
 
 function emailConfigured() {
