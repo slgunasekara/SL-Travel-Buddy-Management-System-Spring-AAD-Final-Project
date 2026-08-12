@@ -35,10 +35,21 @@ function fieldHtml(f, value) {
       <div class="autocomplete-list" id="ac_${f.name}"></div>
     </div>`;
   }
+  if (f.type === "searchSelect") {
+    return `<div class="autocomplete-wrap">
+      <input type="text" id="f_${f.name}_display" placeholder="${f.placeholder || "Type to search..."}" autocomplete="off" ${req} />
+      <input type="hidden" id="f_${f.name}" value="" />
+      <div class="autocomplete-list" id="ac_${f.name}"></div>
+    </div>`;
+  }
   return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""}/>`;
 }
 
 function readFieldValue(f) {
+  if (f.type === "searchSelect") {
+    const el = document.getElementById("f_" + f.name);
+    return el && el.value !== "" ? Number(el.value) : "";
+  }
   const el = qs("#f_" + f.name);
   if (!el) return undefined;
   if (f.type === "checkbox") return el.checked;
@@ -106,7 +117,7 @@ function renderCrudPage(container, cfg) {
   const grid = qs("#formGrid", container);
   grid.innerHTML = cfg.fields.map(f => `
     <div class="form-field ${f.wide ? "form-field--wide" : ""}">
-      ${f.type !== "checkbox" ? `<label for="f_${f.name}">${f.label}${f.required ? ' <span class="req">*</span>' : ""}</label>` : ""}
+      ${f.type !== "checkbox" ? `<label for="f_${f.name}${f.type === "searchSelect" ? "_display" : ""}">${f.label}${f.required ? ' <span class="req">*</span>' : ""}</label>` : ""}
       ${fieldHtml(f, "")}
     </div>`).join("");
 
@@ -115,19 +126,34 @@ function renderCrudPage(container, cfg) {
       const el = qs("#f_" + f.name, container);
       el.addEventListener("change", () => f.onChange(readAllFields()));
     }
-    if (f.type === "autocomplete") wireAutocomplete(f);
+    if (f.type === "autocomplete" || f.type === "searchSelect") wireAutocomplete(f);
   });
 
   function wireAutocomplete(f) {
-    const input = qs("#f_" + f.name, container);
+    const strict = f.type === "searchSelect";
+    const input = qs("#f_" + f.name + (strict ? "_display" : ""), container);
+    const hidden = strict ? qs("#f_" + f.name, container) : null;
     const list = qs("#ac_" + f.name, container);
+
+    function clearHiddenIfNoLongerValid() {
+      if (!strict) return;
+      const items = f.source();
+      const match = items.find(it => it.label === input.value);
+      hidden.value = match ? match.value : "";
+    }
 
     function renderSuggestions() {
       const term = input.value.trim().toLowerCase();
-      if (!term) { list.classList.remove("show"); list.innerHTML = ""; return; }
+      if (!term) {
+        list.classList.remove("show"); list.innerHTML = "";
+        if (strict) hidden.value = "";
+        return;
+      }
       const items = f.source().filter(it => it.label.toLowerCase().includes(term)).slice(0, 8);
       if (items.length === 0) {
-        list.innerHTML = `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
+        list.innerHTML = strict
+          ? `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`
+          : `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
       } else {
         list.innerHTML = items.map((it, i) => `
           <div class="autocomplete-item" data-idx="${i}">
@@ -139,6 +165,7 @@ function renderCrudPage(container, cfg) {
             e.preventDefault(); // keep focus/blur from firing before click registers
             const picked = items[Number(el.dataset.idx)];
             input.value = picked.label;
+            if (strict) hidden.value = picked.value;
             list.classList.remove("show");
             if (f.onPick) f.onPick(picked.raw, container);
           });
@@ -149,7 +176,7 @@ function renderCrudPage(container, cfg) {
 
     input.addEventListener("input", debounce(renderSuggestions, 120));
     input.addEventListener("focus", renderSuggestions);
-    input.addEventListener("blur", () => setTimeout(() => list.classList.remove("show"), 120));
+    input.addEventListener("blur", () => setTimeout(() => { list.classList.remove("show"); clearHiddenIfNoLongerValid(); }, 120));
   }
 
   function readAllFields() {
@@ -163,6 +190,11 @@ function renderCrudPage(container, cfg) {
       const el = qs("#f_" + f.name, container);
       if (!el) return;
       if (f.type === "checkbox") el.checked = !!row[f.name];
+      else if (f.type === "searchSelect") {
+        el.value = row[f.name] === undefined || row[f.name] === null ? "" : row[f.name];
+        const displayEl = qs("#f_" + f.name + "_display", container);
+        if (displayEl) displayEl.value = f.displayValue ? (f.displayValue(row[f.name]) || "") : "";
+      }
       else el.value = row[f.name] === undefined || row[f.name] === null ? "" : row[f.name];
     });
   }
@@ -173,12 +205,18 @@ function renderCrudPage(container, cfg) {
       const el = qs("#f_" + f.name, container);
       if (!el) return;
       if (f.type === "checkbox") el.checked = false;
+      else if (f.type === "searchSelect") {
+        el.value = "";
+        const displayEl = qs("#f_" + f.name + "_display", container);
+        if (displayEl) displayEl.value = "";
+      }
       else el.value = f.default !== undefined ? f.default : "";
     });
     qs("#btnSave", container).disabled = false;
     qs("#btnUpdate", container).disabled = true;
     qs("#btnDelete", container).disabled = true;
     qsa("#dataTable tbody tr", container).forEach(r => r.classList.remove("row-selected"));
+    if (cfg.onClearForm) cfg.onClearForm();
   }
 
   function getRows() {
@@ -261,6 +299,7 @@ function renderCrudPage(container, cfg) {
     if (!row) return;
     editingId = id;
     fillForm(row);
+    if (cfg.onSelectRow) cfg.onSelectRow(row);
     qs("#btnSave", container).disabled = true;
     qs("#btnUpdate", container).disabled = false;
     qs("#btnDelete", container).disabled = false;
@@ -272,7 +311,8 @@ function renderCrudPage(container, cfg) {
     for (const f of cfg.fields) {
       if (f.required && f.type !== "checkbox" && (data[f.name] === "" || data[f.name] === undefined || data[f.name] === null)) {
         Toast.warning(`Please fill in "${f.label}"`);
-        qs("#f_" + f.name, container)?.focus();
+        const focusId = "#f_" + f.name + (f.type === "searchSelect" ? "_display" : "");
+        qs(focusId, container)?.focus();
         return false;
       }
     }

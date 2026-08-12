@@ -1,4 +1,7 @@
-/* pages/tools.js — mirrors BusManagementToolsController */
+/* pages/tools.js — mirrors BusManagementToolsController.
+   Note: the standalone "Quick Calculator" that used to live here was
+   removed since the topbar now has a global quick-access calculator
+   available on every page. */
 function renderToolsPage(container) {
   container.innerHTML = `
     <div class="page-head">
@@ -6,12 +9,6 @@ function renderToolsPage(container) {
     </div>
 
     <div class="grid-2">
-      <div class="card tool-card">
-        <div class="card__head"><h3>${icon("tool")} Quick Calculator</h3></div>
-        <div class="calc-display" id="calcDisplay">0</div>
-        <div class="calc-grid" id="calcGrid"></div>
-      </div>
-
       <div class="card tool-card">
         <div class="card__head"><h3>${icon("route")} Fuel Cost Calculator</h3></div>
         <div class="form-grid">
@@ -52,33 +49,11 @@ function renderToolsPage(container) {
         <button class="btn btn--primary btn--sm" id="btnRoute">Open in Google Maps</button>
         <p class="muted tool-note">Opens driving directions in a new tab (requires internet access).</p>
       </div>
-    </div>`;
+    </div>
 
-  /* ---- Quick calculator ---- */
-  let expr = "";
-  const display = qs("#calcDisplay");
-  const keys = ["7","8","9","÷","4","5","6","×","1","2","3","-","0",".","C","+","=",""];
-  qs("#calcGrid").innerHTML = ["7","8","9","÷","4","5","6","×","1","2","3","-","C","0",".","+","="]
-    .map(k => `<button class="calc-btn ${["÷","×","-","+","="].includes(k) ? "calc-btn--op" : ""} ${k === "C" ? "calc-btn--clear" : ""}" data-k="${k}">${k}</button>`).join("");
-
-  function updateDisplay() { display.textContent = expr === "" ? "0" : expr; }
-  qsa("#calcGrid .calc-btn").forEach(btn => btn.addEventListener("click", () => {
-    const k = btn.dataset.k;
-    if (k === "C") { expr = ""; }
-    else if (k === "=") {
-      try {
-        const safe = expr.replace(/÷/g, "/").replace(/×/g, "*");
-        if (!/^[0-9+\-*/.() ]+$/.test(safe)) throw new Error("bad");
-        // eslint-disable-next-line no-eval
-        const result = Function(`"use strict";return (${safe})`)();
-        expr = String(Math.round(result * 100) / 100);
-      } catch { expr = "Error"; }
-    } else {
-      expr = (expr === "Error" ? "" : expr) + k;
-    }
-    updateDisplay();
-  }));
-  updateDisplay();
+    <p class="muted" style="text-align:center; margin-top: 4px;">
+      Need a plain calculator? Use the ${icon("tool")} icon in the top bar — it's available on every page.
+    </p>`;
 
   /* ---- Fuel cost calculator ---- */
   qs("#btnFuelCalc").addEventListener("click", () => {

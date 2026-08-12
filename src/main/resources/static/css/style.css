@@ -405,6 +405,29 @@ button { font-family: inherit; }
 
 .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; align-items: start; }
 
+/* ---------------------------- Dashboard insight card ---------------------------- */
+.insight-card {
+  display: flex; align-items: flex-start; gap: 18px;
+  background: linear-gradient(120deg, var(--primary-800), var(--primary-600) 55%, var(--primary-500));
+  color: #fff; border: none; position: relative; overflow: hidden;
+}
+.insight-card::before {
+  content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.14), transparent 70%);
+  top: -100px; right: -80px; pointer-events: none;
+}
+.insight-card__icon {
+  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+  background: rgba(255,255,255,.16); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+}
+.insight-card__icon .icon { width: 22px; height: 22px; color: #fff; }
+.insight-card__body { position: relative; z-index: 1; }
+.insight-card__body h3 { color: #fff; font-size: 15px; margin-bottom: 6px; }
+.insight-card__body p { color: rgba(255,255,255,.92); font-size: 13.8px; line-height: 1.7; margin: 0; }
+.insight-card__body p strong { color: #fff; font-weight: 700; }
+
 /* ---------------------------- Stat cards ---------------------------- */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-bottom: 24px; }
 .stat-grid--compact { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 22px; }

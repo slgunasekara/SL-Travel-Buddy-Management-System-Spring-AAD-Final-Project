@@ -100,6 +100,31 @@ localStorage.clear(); location.reload();
 - **Real logo** — the SL Travel Buddy logo now appears on the login
   screen, the sidebar, and the browser tab favicon
 
+## Workflow refinements
+- **Trip Expenses, combined entry** — enter Fuel, Parking and Other
+  amounts for a trip together and save once; each non-empty amount is
+  stored as its own record behind the scenes. The "Other" description
+  field only unlocks (and is required) once you enter an Other amount.
+  Editing a single existing expense from the table still updates just
+  that one record.
+- **Driving Licence No., conditionally required** — on Manage Employee,
+  it's now required only when the Category is Driver or Manager.
+- **Employee Salary, strict search-select** — instead of a long dropdown,
+  type an employee's name to search; you must pick a real employee from
+  the suggestions before saving (typing a name that doesn't match blocks
+  the save, since a salary record only makes sense for an employee that
+  exists).
+- **Customer search-select on Event Bookings** — the same type-to-search
+  pattern; picking an existing customer auto-fills their contact/NIC/
+  address, while typing a name with no match still lets you enter a new
+  customer manually as before.
+- **Tools page simplified** — the plain calculator card was removed
+  since the topbar's quick-access calculator already covers it; the
+  fuel/profit/time calculators and route finder remain.
+- **Dashboard business snapshot** — a plain-language paragraph
+  summarizing total income, expenses, profit margin, and how this month
+  compares to last month.
+
 ## Sending real OTP emails (optional but recommended)
 By default, "Forgot password" generates and validates a real OTP exactly
 like the desktop app did, but shows it on-screen instead of emailing it —

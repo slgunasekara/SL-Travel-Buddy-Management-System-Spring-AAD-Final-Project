@@ -1,6 +1,18 @@
 /* pages/salary.js — Manage Employee Salary (mirrors ManageEmployeeSalaryController) */
 function renderSalaryPage(container) {
-  const empOptions = () => DB.readAll("employees").map(e => ({ value: e.empId, label: `${e.empId} — ${e.empName} (${e.empCategory})` }));
+  function empSuggestions() {
+    return DB.readAll("employees").map(e => ({
+      label: `${e.empName} (${e.empCategory})`,
+      sub: e.contactNo,
+      value: e.empId,
+      raw: e
+    }));
+  }
+  function empDisplayValue(empId) {
+    const e = Q.employee(Number(empId));
+    return e ? `${e.empName} (${e.empCategory})` : "";
+  }
+
   const tripOptions = () => DB.readAll("trips").map(t => ({ value: t.tripId, label: `#${t.tripId} — ${t.startLocation} → ${t.endLocation} (${Fmt.date(t.tripDate)})` }));
 
   renderCrudPage(container, {
@@ -10,7 +22,7 @@ function renderSalaryPage(container) {
     idField: "salaryId",
     singular: "Salary payment",
     fields: [
-      { name: "empId", label: "Employee", type: "select", required: true, options: empOptions() },
+      { name: "empId", label: "Employee", type: "searchSelect", required: true, placeholder: "Type a name to search employees...", source: empSuggestions, displayValue: empDisplayValue },
       { name: "tripId", label: "Trip (optional)", type: "select", options: tripOptions() },
       { name: "amount", label: "Amount (Rs.)", type: "number", step: "0.01", required: true },
       { name: "date", label: "Date", type: "date", required: true },
@@ -27,6 +39,10 @@ function renderSalaryPage(container) {
     defaultSort: (a, b) => b.salaryId - a.salaryId,
     emptyText: "No salary payments recorded yet.",
     beforeSave(data) {
+      if (!data.empId) return { error: "Please select an employee from the list (type a name to search)." };
+      if (!DB.readAll("employees").some(e => e.empId === data.empId)) {
+        return { error: "That doesn't match a valid employee — please pick one from the suggestions." };
+      }
       if (!Validate.isPositiveNumber(data.amount)) return { error: "Amount must be a positive number." };
       data.tripId = data.tripId === "" ? null : Number(data.tripId);
       return null;
