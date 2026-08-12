@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gunasekara Bus Management System — Login</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%22.9em%22 font-size=%2222%22>🚌</text></svg>">
+</head>
+<body class="auth-body">
+
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <div class="auth-visual__overlay">
+        <div class="brand-mark brand-mark--lg">
+          <img src="assets/gun.jpg" alt="Logo" class="logo"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <span class="logo-fallback" style="font-size:30px;">🚌</span>
+        </div>
+        <h1>Gunasekara Travels</h1>
+        <p>Fleet Management System</p>
+        <ul class="auth-visual__list">
+          <li>Fleet, trip &amp; crew management</li>
+          <li>Revenue, expense &amp; profit tracking</li>
+          <li>Maintenance &amp; parts inventory</li>
+          <li>Reports built for decision-making</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-card" id="loginCard">
+        <h2>Welcome back</h2>
+        <p class="muted">Sign in to manage your bus fleet.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="form-field">
+            <label for="username">Username</label>
+            <input type="text" id="username" autocomplete="username" required placeholder="e.g. amg" />
+          </div>
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••" />
+              <button type="button" class="password-toggle" id="togglePw" aria-label="Show password">👁</button>
+            </div>
+          </div>
+          <div id="loginError" class="form-error" hidden></div>
+          <button type="submit" class="btn btn--primary btn--block" id="btnLogin">Sign In</button>
+          <button type="button" class="link-btn" id="linkForgot">Forgot password?</button>
+        </form>
+
+        <div class="demo-box">
+          <strong>Demo accounts</strong>
+          <div><code>amg</code> / <code>amg123</code> — Owner</div>
+          <div><code>sampath</code> / <code>sampath123</code> — Manager</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    if (Session.isLoggedIn()) location.href = "dashboard.html";
+
+    const form = qs("#loginForm");
+    const errBox = qs("#loginError");
+
+    qs("#togglePw").addEventListener("click", () => {
+      const pw = qs("#password");
+      pw.type = pw.type === "password" ? "text" : "password";
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      errBox.hidden = true;
+      const username = qs("#username").value.trim();
+      const password = qs("#password").value;
+      if (!username || !password) {
+        errBox.textContent = "Please enter both username and password.";
+        errBox.hidden = false;
+        return;
+      }
+      const user = Auth.authenticate(username, password);
+      if (!user) {
+        errBox.textContent = "Invalid username or password.";
+        errBox.hidden = false;
+        return;
+      }
+      Session.set(user);
+      Toast.success(`Welcome, ${user.name}!`);
+      setTimeout(() => location.href = "dashboard.html", 400);
+    });
+
+    /* ---------------- Forgot password / OTP flow ---------------- */
+    qs("#linkForgot").addEventListener("click", () => {
+      let stage = "email";
+      let pendingEmail = "";
+      let pendingUserId = null;
+      let pendingCode = "";
+
+      function bodyForStage() {
+        if (stage === "email") {
+          return `
+            <p class="muted">Enter the email address linked to your account. We'll generate a one-time code.</p>
+            <div class="form-field"><label>Email</label><input type="email" id="fpEmail" placeholder="you@example.com" /></div>`;
+        }
+        if (stage === "otp") {
+          return `
+            <div class="otp-banner">
+              <strong>Demo mode:</strong> since this is a client-only app with no mail server, your OTP is shown here instead of being emailed.
+              <div class="otp-code">${pendingOtp}</div>
+              <span class="muted">Valid for 10 minutes.</span>
+            </div>
+            <div class="form-field"><label>Enter the 6-digit code</label><input type="text" id="fpOtp" maxlength="6" placeholder="000000" /></div>`;
+        }
+        return `
+          <div class="form-field"><label>New Password</label><input type="password" id="fpNewPw" placeholder="At least 6 characters" /></div>
+          <div class="form-field"><label>Confirm Password</label><input type="password" id="fpConfirmPw" placeholder="Re-enter password" /></div>`;
+      }
+
+      let pendingOtp = "";
+
+      const modal = openModal({
+        title: "Reset Password",
+        bodyHtml: `<div id="fpBody">${bodyForStage()}</div>`,
+        footerHtml: `<button class="btn btn--ghost" data-act="x">Cancel</button><button class="btn btn--primary" id="fpNext">Send Code</button>`,
+        onMount(overlay) {
+          function refresh() {
+            qs("#fpBody", overlay).innerHTML = bodyForStage();
+            qs("#fpNext", overlay).textContent = stage === "email" ? "Send Code" : stage === "otp" ? "Verify Code" : "Reset Password";
+          }
+          qs("#fpNext", overlay).addEventListener("click", () => handleNext(overlay, refresh));
+          refresh();
+        }
+      });
+
+      function handleNext(overlay, refresh) {
+        if (stage === "email") {
+          const email = qs("#fpEmail", overlay).value.trim();
+          if (!Validate.isEmail(email)) { Toast.warning("Please enter a valid email address."); return; }
+          const res = Auth.requestOtp(email);
+          if (!res.ok) { Toast.error("No account found with that email address."); return; }
+          pendingEmail = email;
+          pendingOtp = res.otp;
+          pendingUserId = res.user.userId;
+          Toast.success("A verification code has been generated.");
+          stage = "otp";
+          refresh();
+        } else if (stage === "otp") {
+          const code = qs("#fpOtp", overlay).value.trim();
+          const uid = Auth.verifyOtp(pendingEmail, code);
+          if (!uid) { Toast.error("Invalid or expired code. Please try again."); return; }
+          pendingUserId = uid;
+          pendingCode = code;
+          Toast.success("Code verified!");
+          stage = "reset";
+          refresh();
+        } else {
+          const pw1 = qs("#fpNewPw", overlay).value;
+          const pw2 = qs("#fpConfirmPw", overlay).value;
+          if (pw1.length < 6) { Toast.warning("Password must be at least 6 characters."); return; }
+          if (pw1 !== pw2) { Toast.warning("Passwords do not match."); return; }
+          Auth.resetPassword(pendingUserId, pw1);
+          Auth.markOtpUsed(pendingEmail, pendingCode);
+          Toast.success("Password reset successfully! Please sign in.");
+          modal.close();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

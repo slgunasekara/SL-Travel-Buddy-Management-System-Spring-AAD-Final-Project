@@ -1,0 +1,244 @@
+/* pages/reports.js — mirrors ManageReportController + DailyProfitController + MonthlyProfitController */
+function renderReportsPage(container) {
+  let activeTab = "overview";
+  let fromDate = defaultFrom();
+  let toDate = DB.today();
+
+  function defaultFrom() {
+    const d = new Date(); d.setDate(d.getDate() - 29);
+    return d.toISOString().slice(0, 10);
+  }
+
+  const TABS = [
+    { id: "overview", label: "Overview" },
+    { id: "income", label: "Income Report" },
+    { id: "expense", label: "Expense Report" },
+    { id: "salary", label: "Salary Report" },
+    { id: "trip", label: "Trip Report" },
+    { id: "daily", label: "Daily Profit" },
+    { id: "monthly", label: "Monthly Profit" }
+  ];
+
+  container.innerHTML = `
+    <div class="page-head">
+      <div><h2>Reports</h2><p class="muted">Financial performance across income, expenses, salaries and trips.</p></div>
+    </div>
+
+    <div class="card filter-bar">
+      <div class="form-field">
+        <label>From</label>
+        <input type="date" id="fromDate" value="${fromDate}" />
+      </div>
+      <div class="form-field">
+        <label>To</label>
+        <input type="date" id="toDate" value="${toDate}" />
+      </div>
+      <button class="btn btn--primary" id="btnApply">Apply Filter</button>
+      <div class="quick-ranges">
+        <button class="chip-btn" data-range="7">Last 7 days</button>
+        <button class="chip-btn" data-range="30">Last 30 days</button>
+        <button class="chip-btn" data-range="90">Last 90 days</button>
+        <button class="chip-btn" data-range="365">This year</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabBar"></div>
+    <div id="tabContent"></div>`;
+
+  qs("#tabBar").innerHTML = TABS.map(t => `<button class="tab-btn ${t.id === activeTab ? "active" : ""}" data-tab="${t.id}">${t.label}</button>`).join("");
+
+  qsa("[data-tab]").forEach(btn => btn.addEventListener("click", () => {
+    activeTab = btn.dataset.tab;
+    qsa("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === activeTab));
+    renderTab();
+  }));
+
+  qs("#btnApply").addEventListener("click", () => {
+    fromDate = qs("#fromDate").value;
+    toDate = qs("#toDate").value;
+    if (fromDate > toDate) { Toast.warning("From date cannot be after To date."); return; }
+    renderTab();
+  });
+
+  qsa("[data-range]").forEach(btn => btn.addEventListener("click", () => {
+    const days = Number(btn.dataset.range);
+    const to = new Date();
+    const from = new Date(); from.setDate(from.getDate() - (days - 1));
+    fromDate = from.toISOString().slice(0, 10);
+    toDate = to.toISOString().slice(0, 10);
+    qs("#fromDate").value = fromDate;
+    qs("#toDate").value = toDate;
+    renderTab();
+  }));
+
+  function summaryCardsHtml() {
+    const s = Q.reportSummary(fromDate, toDate);
+    return `
+      <div class="stat-grid stat-grid--compact">
+        <div class="stat-card stat-card--green">${icon("trend")}<div><span class="stat-card__value">${Fmt.money(s.totalIncome)}</span><span class="stat-card__label">Total Income</span></div></div>
+        <div class="stat-card stat-card--amber">${icon("receipt")}<div><span class="stat-card__value">${Fmt.money(s.totalExpenses)}</span><span class="stat-card__label">Total Expenses</span></div></div>
+        <div class="stat-card stat-card--blue">${icon("wallet")}<div><span class="stat-card__value">${Fmt.money(s.totalSalary)}</span><span class="stat-card__label">Total Salary</span></div></div>
+        <div class="stat-card ${s.netProfit >= 0 ? "stat-card--green" : "stat-card--red"}">${icon("chart")}<div><span class="stat-card__value">${Fmt.money(s.netProfit)}</span><span class="stat-card__label">Net Profit</span></div></div>
+        <div class="stat-card stat-card--purple">${icon("route")}<div><span class="stat-card__value">${s.totalTrips}</span><span class="stat-card__label">Total Trips</span></div></div>
+      </div>`;
+  }
+
+  function exportTable(headers, rows, filename) {
+    const lines = [headers.join(",")];
+    rows.forEach(r => lines.push(r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    Toast.success("CSV exported!");
+  }
+
+  function renderTab() {
+    const host = qs("#tabContent");
+    if (activeTab === "overview") {
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="card__head"><h3>Daily Profit Trend</h3></div>
+          <div id="overviewChart"></div>
+        </div>`;
+      const rows = Q.dailyProfitByRange(fromDate, toDate).sort((a, b) => a.date.localeCompare(b.date));
+      renderLineChart(qs("#overviewChart"), {
+        labels: rows.map(r => Fmt.date(r.date).replace(/ \d{4}$/, "")),
+        series: [
+          { name: "Income", color: "#2f9e6e", data: rows.map(r => r.totalIncome) },
+          { name: "Expenses", color: "#e0663e", data: rows.map(r => r.totalExpenses) },
+          { name: "Net Profit", color: "#3565e8", data: rows.map(r => r.netProfit) }
+        ]
+      });
+      return;
+    }
+
+    if (activeTab === "income") {
+      const rows = Q.incomeReport(fromDate, toDate);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="table-toolbar"><h3>Income Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Trip ID</th><th>Bus</th><th>Date</th><th>Income</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${r.busNumber}</td><td>${Fmt.date(r.tripDate)}</td><td>${Fmt.money(r.totalIncome)}</td></tr>`).join("") : `<tr><td colspan="4"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
+          </table></div>
+        </div>`;
+      qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Bus", "Date", "Income"], rows.map(r => [r.tripId, r.busNumber, r.tripDate, r.totalIncome]), `income_report_${fromDate}_${toDate}.csv`));
+      return;
+    }
+
+    if (activeTab === "expense") {
+      const rows = Q.expenseReport(fromDate, toDate);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="table-toolbar"><h3>Expense Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.date(r.expenseDate)}</td><td><span class="badge badge--gray">${r.category}</span></td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No expenses in this range.</div></td></tr>`}</tbody>
+          </table></div>
+        </div>`;
+      qs("#exp")?.addEventListener("click", () => exportTable(["Date", "Category", "Amount"], rows.map(r => [r.expenseDate, r.category, r.amount]), `expense_report_${fromDate}_${toDate}.csv`));
+      return;
+    }
+
+    if (activeTab === "salary") {
+      const rows = Q.salaryReport(fromDate, toDate);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="table-toolbar"><h3>Salary Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Employee</th><th>Date</th><th>Amount</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.escapeHtml(r.employeeName)}</td><td>${Fmt.date(r.salaryDate)}</td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No salary payments in this range.</div></td></tr>`}</tbody>
+          </table></div>
+        </div>`;
+      qs("#exp")?.addEventListener("click", () => exportTable(["Employee", "Date", "Amount"], rows.map(r => [r.employeeName, r.salaryDate, r.amount]), `salary_report_${fromDate}_${toDate}.csv`));
+      return;
+    }
+
+    if (activeTab === "trip") {
+      const rows = Q.tripReport(fromDate, toDate);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="table-toolbar"><h3>Trip Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Trip ID</th><th>Date</th><th>Bus</th><th>Route</th><th>Category</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${Fmt.date(r.tripDate)}</td><td>${r.busNumber}</td><td>${Fmt.escapeHtml(r.route)}</td><td><span class="badge badge--blue">${r.category}</span></td></tr>`).join("") : `<tr><td colspan="5"><div class="table-empty">No trips in this range.</div></td></tr>`}</tbody>
+          </table></div>
+        </div>`;
+      qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Date", "Bus", "Route", "Category"], rows.map(r => [r.tripId, r.tripDate, r.busNumber, r.route, r.category]), `trip_report_${fromDate}_${toDate}.csv`));
+      return;
+    }
+
+    if (activeTab === "daily") {
+      const rows = Q.dailyProfitByRange(fromDate, toDate);
+      host.innerHTML = `
+        ${summaryCardsHtml()}
+        <div class="card">
+          <div class="table-toolbar"><h3>Daily Profit Breakdown</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Date</th><th>Trips</th><th>Income</th><th>Trip Exp.</th><th>Salaries</th><th>Maintenance</th><th>Parts</th><th>Services</th><th>Total Exp.</th><th>Net Profit</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `
+              <tr>
+                <td>${Fmt.date(r.date)}</td><td>${r.totalTrips}</td><td>${Fmt.money(r.totalIncome)}</td>
+                <td>${Fmt.money(r.tripExpenses)}</td><td>${Fmt.money(r.salaries)}</td><td>${Fmt.money(r.maintenance)}</td>
+                <td>${Fmt.money(r.partPurchases)}</td><td>${Fmt.money(r.otherServices)}</td><td>${Fmt.money(r.totalExpenses)}</td>
+                <td class="${r.netProfit >= 0 ? "text-success" : "text-danger"}">${Fmt.money(r.netProfit)}</td>
+              </tr>`).join("") : `<tr><td colspan="10"><div class="table-empty">No data in this range.</div></td></tr>`}</tbody>
+          </table></div>
+        </div>`;
+      qs("#exp")?.addEventListener("click", () => exportTable(
+        ["Date", "Trips", "Income", "Trip Exp", "Salaries", "Maintenance", "Parts", "Services", "Total Exp", "Net Profit"],
+        rows.map(r => [r.date, r.totalTrips, r.totalIncome, r.tripExpenses, r.salaries, r.maintenance, r.partPurchases, r.otherServices, r.totalExpenses, r.netProfit]),
+        `daily_profit_${fromDate}_${toDate}.csv`));
+      return;
+    }
+
+    if (activeTab === "monthly") {
+      const year = new Date(toDate).getFullYear();
+      host.innerHTML = `
+        <div class="card filter-bar">
+          <div class="form-field"><label>Year</label>
+            <select id="yearSelect">${yearOptions(year)}</select>
+          </div>
+        </div>
+        <div id="monthlyHost"></div>`;
+      const renderMonthly = () => {
+        const y = Number(qs("#yearSelect").value);
+        const rows = Q.monthlyProfit(y);
+        qs("#monthlyHost").innerHTML = `
+          <div class="card">
+            <div class="table-toolbar"><h3>Monthly Profit — ${y}</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+            <div class="table-wrap"><table class="data-table">
+              <thead><tr><th>Month</th><th>Trips</th><th>Income</th><th>Total Exp.</th><th>Net Profit</th></tr></thead>
+              <tbody>${rows.length ? rows.map(r => `
+                <tr><td>${Fmt.monthLabel(r.month)}</td><td>${r.totalTrips}</td><td>${Fmt.money(r.totalIncome)}</td>
+                <td>${Fmt.money(r.totalExpenses)}</td><td class="${r.netProfit >= 0 ? "text-success" : "text-danger"}">${Fmt.money(r.netProfit)}</td></tr>`).join("")
+                : `<tr><td colspan="5"><div class="table-empty">No trips recorded for ${y}.</div></td></tr>`}</tbody>
+            </table></div>
+          </div>`;
+        qs("#exp")?.addEventListener("click", () => exportTable(
+          ["Month", "Trips", "Income", "Total Expenses", "Net Profit"],
+          rows.map(r => [Fmt.monthLabel(r.month), r.totalTrips, r.totalIncome, r.totalExpenses, r.netProfit]),
+          `monthly_profit_${y}.csv`));
+      };
+      qs("#yearSelect").addEventListener("change", renderMonthly);
+      renderMonthly();
+      return;
+    }
+  }
+
+  function yearOptions(selected) {
+    const trips = DB.readAll("trips");
+    const years = new Set(trips.map(t => Number(t.tripDate.slice(0, 4))));
+    years.add(new Date().getFullYear());
+    years.add(selected);
+    return [...years].sort((a, b) => b - a).map(y => `<option value="${y}" ${y === selected ? "selected" : ""}>${y}</option>`).join("");
+  }
+
+  renderTab();
+}
