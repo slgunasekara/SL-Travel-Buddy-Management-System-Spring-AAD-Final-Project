@@ -98,17 +98,27 @@ Security → App Passwords.
   (`--primary: #095dbd`, `--bg: #ffffff`, plus generated tints/shades
   `--primary-50` … `--primary-950`). Change `--primary` there to re-theme
   the whole app.
-- **Logo:** search `css/style.css`'s companion files `index.html` and
-  `js/router.js` for `PASTE_LOGO_IMAGE_URL_HERE` (2 occurrences) and
-  replace with your real logo image URL. Until you do, a bus-icon
-  fallback is shown automatically so nothing looks broken.
-- Cards, buttons, inputs and modals use soft layered shadows, gradients
-  and rounded corners (neumorphism/soft-UI). Buttons lift on hover and
-  press inward on click; the navbar/topbar, modals and toasts use a
-  frosted-glass (glassmorphism) blur effect.
+- **Logo:** the real SL Travel Buddy logo (`assets/SLTravelBuddy.png`) is
+  wired into the login hero and the sidebar brand mark. If you ever swap
+  the file, just replace `assets/SLTravelBuddy.png` (same filename) or
+  update the `src=` in `index.html` and `js/router.js`. A bus-icon
+  fallback shows automatically if the image ever fails to load.
+- Cards, buttons, inputs, modals, the sidebar and the login hero all use
+  layered gradients (not flat colors) plus soft shadows for a 3D soft-UI
+  look. Buttons lift on hover and press inward on click; the topbar,
+  modals and toasts use a frosted-glass (glassmorphism) blur.
+- Login page has an animated drifting gradient background, floating glow
+  blobs, a subtle shine sweep across the "SL Travel Buddy" heading, and a
+  gently floating logo — all pure CSS, no extra libraries.
 - Page content fades/slides in on load, and cards animate in as they
   scroll into view (`js/reveal.js`, a small dependency-free
-  IntersectionObserver utility — no external animation library needed).
+  IntersectionObserver utility).
+- **Quick Calculator:** a small calculator icon sits in the top bar, just
+  to the left of the clock, on every page. Clicking it drops down a
+  compact, glossy blue/white 3D calculator you can use from anywhere in
+  the app without leaving the page (`js/quickCalc.js`). This is separate
+  from — and doesn't change — the full calculator suite already on the
+  **Tools** page.
 - Motion respects `prefers-reduced-motion` for accessibility.
 - This was a pure visual/styling pass — no HTML structure, JavaScript
   logic, routes, or features were changed.

@@ -59,7 +59,7 @@ const Router = (() => {
         <aside class="sidebar" id="sidebar">
           <div class="sidebar__brand">
             <div class="brand-mark">
-              <img src="PASTE_LOGO_IMAGE_URL_HERE" alt="Logo" class="logo"
+              <img src="assets/SLTravelBuddy.png" alt="SL Travel Buddy Logo" class="logo"
                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
               <span class="logo-fallback">${icon("bus")}</span>
             </div>
@@ -87,6 +87,9 @@ const Router = (() => {
             </button>
             <div class="topbar__title" id="pageTitle">Dashboard</div>
             <div class="topbar__right">
+              <button class="calc-trigger" id="calcTrigger" title="Quick Calculator" aria-label="Open quick calculator">
+                ${icon("tool")}
+              </button>
               <span class="topbar__clock" id="clock"></span>
             </div>
           </header>
@@ -106,6 +109,11 @@ const Router = (() => {
     });
 
     qs("#burger").addEventListener("click", () => qs("#sidebar").classList.toggle("open"));
+
+    qs("#calcTrigger").addEventListener("click", (e) => {
+      e.stopPropagation();
+      QuickCalc.toggle(qs("#calcTrigger"));
+    });
 
     function tickClock() {
       const el = qs("#clock");
