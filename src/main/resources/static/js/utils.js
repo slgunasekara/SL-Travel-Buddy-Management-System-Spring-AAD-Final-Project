@@ -144,12 +144,3 @@ function debounce(fn, ms = 250) {
 
 function qs(sel, root = document) { return root.querySelector(sel); }
 function qsa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
-
-/* Reads a query-string style param appended after "?" in the URL hash,
-   e.g. "#/buses?id=5" -> hashQueryParam("id") === "5". Used so links
-   (like Global Search results) can jump straight to one record, not
-   just the page. Returns null if not present. */
-function hashQueryParam(name) {
-  const raw = (location.hash.split("?")[1]) || "";
-  return new URLSearchParams(raw).get(name);
-}

@@ -36,27 +36,27 @@ const GlobalSearch = (() => {
 
     DB.readAll("buses").forEach(b => {
       if (`${b.busNumber} ${b.busBrandName} ${b.busType}`.toLowerCase().includes(t)) {
-        out.push({ group: "Buses", icon: "bus", title: b.busNumber, sub: `${b.busBrandName} · ${b.busType}`, hash: `#/buses?id=${b.busId}` });
+        out.push({ group: "Buses", icon: "bus", title: b.busNumber, sub: `${b.busBrandName} · ${b.busType}`, hash: "#/buses" });
       }
     });
     DB.readAll("trips").forEach(tr => {
       if (`${tr.startLocation} ${tr.endLocation} ${tr.tripCategory}`.toLowerCase().includes(t)) {
-        out.push({ group: "Trips", icon: "route", title: `${tr.startLocation} → ${tr.endLocation}`, sub: `${tr.tripCategory} · ${Fmt.date(tr.tripDate)}`, hash: `#/trips?id=${tr.tripId}` });
+        out.push({ group: "Trips", icon: "route", title: `${tr.startLocation} → ${tr.endLocation}`, sub: `${tr.tripCategory} · ${Fmt.date(tr.tripDate)}`, hash: "#/trips" });
       }
     });
     DB.readAll("employees").forEach(e => {
       if (`${e.empName} ${e.empCategory} ${e.contactNo}`.toLowerCase().includes(t)) {
-        out.push({ group: "Employees", icon: "users", title: e.empName, sub: `${e.empCategory} · ${e.contactNo}`, hash: `#/employees?id=${e.empId}` });
+        out.push({ group: "Employees", icon: "users", title: e.empName, sub: `${e.empCategory} · ${e.contactNo}`, hash: "#/employees" });
       }
     });
     DB.readAll("customers").forEach(c => {
       if (`${c.name} ${c.contact} ${c.nic}`.toLowerCase().includes(t)) {
-        out.push({ group: "Customers", icon: "users", title: c.name, sub: c.contact || "", hash: `#/customers?id=${c.customerId}` });
+        out.push({ group: "Customers", icon: "users", title: c.name, sub: c.contact || "", hash: "#/customers" });
       }
     });
     DB.readAll("events").forEach(ev => {
       if (`${ev.customerName} ${ev.startLocation} ${ev.endLocation}`.toLowerCase().includes(t)) {
-        out.push({ group: "Event Bookings", icon: "calendar", title: ev.customerName, sub: `${ev.startLocation} → ${ev.endLocation}`, hash: `#/events?id=${ev.eventId}` });
+        out.push({ group: "Event Bookings", icon: "calendar", title: ev.customerName, sub: `${ev.startLocation} → ${ev.endLocation}`, hash: "#/events" });
       }
     });
 

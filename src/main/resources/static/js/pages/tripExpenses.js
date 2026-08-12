@@ -109,7 +109,7 @@ function renderTripExpensesPage(container) {
   function crewSlotInfo(tripId) {
     const crew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
     const salaries = DB.readAll("employeeSalaries").filter(s => s.tripId === tripId && s.fromTripExpense);
-    const driverSlots = Q.driverSlotsForTrip(tripId);
+    const drivers = crew.filter(c => c.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
     const byRole = { CONDUCTOR: crew.find(c => c.roleInTrip === "CONDUCTOR"), HELPER: crew.find(c => c.roleInTrip === "HELPER"), CLEANER: crew.find(c => c.roleInTrip === "CLEANER") };
 
     function info(rec) {
@@ -118,7 +118,7 @@ function renderTripExpensesPage(container) {
       return { empId: rec.empId, name: Q.empName(rec.empId), amount: sal ? sal.amount : null };
     }
     return {
-      driver1: info(driverSlots.driver1), driver2: info(driverSlots.driver2),
+      driver1: info(drivers[0]), driver2: info(drivers[1]),
       conductor: info(byRole.CONDUCTOR), helper: info(byRole.HELPER), cleaner: info(byRole.CLEANER)
     };
   }

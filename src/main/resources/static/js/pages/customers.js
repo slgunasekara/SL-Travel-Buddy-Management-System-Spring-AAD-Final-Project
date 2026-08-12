@@ -23,7 +23,7 @@ function renderCustomersPage(container) {
       { key: "nic", label: "NIC", render: r => r.nic || "-" },
       { key: "email", label: "Email", render: r => r.email || "-" },
       { key: "bookings", label: "Bookings", render: r => {
-          const n = Q.customerBookingsCount(r.nic, r.contact);
+          const n = Q.customerBookingsCount(r.nic);
           return n > 0 ? `<span class="badge badge--blue">${n} booking${n === 1 ? "" : "s"}</span>` : `<span class="badge badge--gray">No bookings yet</span>`;
         }
       }

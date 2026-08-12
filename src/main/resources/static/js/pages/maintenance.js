@@ -35,11 +35,6 @@ function renderMaintenancePage(container) {
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; },
-    canDelete(id) {
-      const hasParts = DB.readAll("partPurchases").some(p => p.maintId === id);
-      if (hasParts) return { blocked: true, reason: "Cannot delete this maintenance record — part purchases are linked to it." };
-      return { blocked: false };
-    },
     onPrint(row) { PrintReceipt.maintenanceReceipt(row, Q.busNumber(row.busId)); }
   });
 }

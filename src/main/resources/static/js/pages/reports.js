@@ -145,12 +145,10 @@ function renderReportsPage(container) {
 
     if (activeTab === "expense") {
       const rows = Q.expenseReport(fromDate, toDate);
-      const expenseRowsTotal = rows.reduce((a, r) => a + Number(r.amount), 0);
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
           <div class="table-toolbar"><h3>Expense Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
-          <p class="muted" style="padding:0 16px 4px;">Covers Trip Expenses, Maintenance, Parts and Other Services — total below: <strong>${Fmt.money(expenseRowsTotal)}</strong>. Salary payments are reported separately under the Salary Report tab (the "Total Expenses" card above includes salary).</p>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.date(r.expenseDate)}</td><td><span class="badge badge--gray">${r.category}</span></td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No expenses in this range.</div></td></tr>`}</tbody>

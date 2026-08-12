@@ -196,8 +196,7 @@ function renderTripsPage(container) {
   async function doDelete(id) {
     const hasExpenses = DB.readAll("tripExpenses").some(e => e.tripId === id);
     const hasSalary = DB.readAll("employeeSalaries").some(s => s.tripId === id);
-    const hasServices = DB.readAll("otherServices").some(s => s.tripId === id);
-    if (hasExpenses || hasSalary || hasServices) { Toast.error("Cannot delete this trip — it has linked expenses, salary records, or other service records."); return; }
+    if (hasExpenses || hasSalary) { Toast.error("Cannot delete this trip — it has linked expenses or salary records."); return; }
     const ok = await confirmDialog({ title: "Delete Trip", message: "This will also remove crew assignments for this trip. Continue?", okText: "Delete", danger: true });
     if (!ok) return;
     DB.writeAll("trips", DB.readAll("trips").filter(t => t.tripId !== id));
@@ -211,27 +210,20 @@ function renderTripsPage(container) {
     const trip = DB.readAll("trips").find(t => t.tripId === tripId);
     const employees = DB.readAll("employees").filter(e => e.empStatus === "ACTIVE");
     const currentCrew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
-    const driverSlots = Q.driverSlotsForTrip(tripId);
+    const drivers = currentCrew.filter(te => te.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
 
     const SLOTS = [
-      { key: "driver1", label: "Driver 1", role: "DRIVER", driverSlot: 1, existing: driverSlots.driver1 },
-      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER", driverSlot: 2, existing: driverSlots.driver2 },
+      { key: "driver1", label: "Driver 1", role: "DRIVER", existing: drivers[0] || null },
+      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER", existing: drivers[1] || null },
       { key: "conductor", label: "Conductor", role: "CONDUCTOR", existing: currentCrew.find(te => te.roleInTrip === "CONDUCTOR") || null },
       { key: "helper", label: "Helper", role: "HELPER", existing: currentCrew.find(te => te.roleInTrip === "HELPER") || null },
       { key: "cleaner", label: "Cleaner", role: "CLEANER", existing: currentCrew.find(te => te.roleInTrip === "CLEANER") || null }
     ];
 
-    function empSuggestions(term, role) {
+    function empSuggestions(term) {
       const t = term.trim().toLowerCase();
       if (!t) return [];
-      // An employee can cover two roles (e.g. Driver + Conductor) — anyone
-      // whose primary OR secondary role matches this slot is treated as a
-      // full match and prioritized; others still show up further down.
-      const matchesRole = e => e.empCategory === role || e.empSecondaryCategory === role;
-      return employees
-        .filter(e => e.empName.toLowerCase().includes(t))
-        .sort((a, b) => (matchesRole(a) ? 0 : 1) - (matchesRole(b) ? 0 : 1))
-        .slice(0, 8);
+      return employees.filter(e => e.empName.toLowerCase().includes(t)).slice(0, 8);
     }
 
     openModal({
@@ -257,14 +249,14 @@ function renderTripsPage(container) {
           const list = qs(`#slot_${s.key}_list`, overlay);
 
           function renderSuggestions() {
-            const matches = empSuggestions(input.value, s.role);
+            const matches = empSuggestions(input.value);
             if (!input.value.trim()) { list.classList.remove("show"); list.innerHTML = ""; hidden.value = ""; return; }
             list.innerHTML = matches.length === 0
               ? `<div class="autocomplete-empty">No matching employee found.</div>`
               : matches.map((e, i) => `
                 <div class="autocomplete-item" data-idx="${i}">
                   <div class="autocomplete-item__title">${Fmt.escapeHtml(e.empName)}</div>
-                  <div class="autocomplete-item__sub">${e.empCategory}${e.empSecondaryCategory ? ` + ${e.empSecondaryCategory}` : ""}${(e.empCategory !== s.role && e.empSecondaryCategory !== s.role) ? ` <span class="muted">(not usually ${s.role.toLowerCase()})</span>` : ""} · ${e.contactNo}</div>
+                  <div class="autocomplete-item__sub">${e.empCategory} · ${e.contactNo}</div>
                 </div>`).join("");
             qsa(".autocomplete-item", list).forEach(el => {
               el.addEventListener("mousedown", (e) => {
@@ -287,20 +279,6 @@ function renderTripsPage(container) {
         });
 
         qs("#btnSaveCrew", overlay).addEventListener("click", () => {
-          // Same person can't fill two different crew slots (or both driver
-          // seats) on one trip — check before touching anything.
-          const picks = SLOTS
-            .map(s => ({ slot: s, empId: qs(`#slot_${s.key}_id`, overlay).value || null }))
-            .filter(p => p.empId);
-          const takenBy = {};
-          for (const p of picks) {
-            if (takenBy[p.empId]) {
-              Toast.error(`${Q.empName(Number(p.empId))} is already assigned as ${takenBy[p.empId]} on this trip — the same person can't fill two crew slots.`);
-              return;
-            }
-            takenBy[p.empId] = p.slot.label;
-          }
-
           let all = DB.readAll("tripEmployees");
           let changed = 0;
           SLOTS.forEach(s => {
@@ -312,18 +290,12 @@ function renderTripsPage(container) {
               all = all.filter(te => te.tripEmpId !== existingRec.tripEmpId);
               changed++;
             } else if (newEmpId && !existingRec) {
-              all.push({ tripEmpId: DB.nextId("tripEmployees"), tripId, empId: newEmpId, roleInTrip: s.role, driverSlot: s.driverSlot || null, assignedDate: DB.nowISO(), createdBy: Session.currentUser().userId });
+              all.push({ tripEmpId: DB.nextId("tripEmployees"), tripId, empId: newEmpId, roleInTrip: s.role, assignedDate: DB.nowISO(), createdBy: Session.currentUser().userId });
               changed++;
             } else if (newEmpId && existingRec && existingRec.empId !== newEmpId) {
               const idx = all.findIndex(te => te.tripEmpId === existingRec.tripEmpId);
-              if (idx >= 0) all[idx] = { ...all[idx], empId: newEmpId, driverSlot: s.driverSlot || existingRec.driverSlot || null };
+              if (idx >= 0) all[idx] = { ...all[idx], empId: newEmpId };
               changed++;
-            } else if (newEmpId && existingRec && s.driverSlot && existingRec.driverSlot !== s.driverSlot) {
-              // Same person, but this record predates driverSlot tracking — quietly stamp it
-              // now so the Driver 1 / Driver 2 label stays stable on future edits. Not counted
-              // as a user-visible change (no "Crew updated!" toast just for this).
-              const idx = all.findIndex(te => te.tripEmpId === existingRec.tripEmpId);
-              if (idx >= 0) all[idx] = { ...all[idx], driverSlot: s.driverSlot };
             }
           });
           DB.writeAll("tripEmployees", all);
@@ -476,13 +448,4 @@ function renderTripsPage(container) {
 
   clearForm();
   renderTable();
-
-  // Jump straight to one trip when arriving via a link that carries
-  // "?id=" (e.g. a Global Search result) instead of just landing on the
-  // unfiltered list.
-  const focusIdRaw = hashQueryParam("id");
-  if (focusIdRaw !== null) {
-    const focusId = Number(focusIdRaw);
-    if (!isNaN(focusId) && DB.readAll("trips").some(t => t.tripId === focusId)) selectRow(focusId);
-  }
 }

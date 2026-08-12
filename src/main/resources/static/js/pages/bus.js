@@ -56,12 +56,7 @@ function renderBusPage(container) {
     canDelete(id) {
       const usedByTrip = DB.readAll("trips").some(t => t.busId === id);
       const usedByEvent = DB.readAll("events").some(e => e.busId === id);
-      const usedByMaintenance = DB.readAll("maintenance").some(m => m.busId === id);
-      const usedByParts = DB.readAll("partPurchases").some(p => p.busId === id);
-      const usedByServices = DB.readAll("otherServices").some(s => s.busId === id);
-      if (usedByTrip || usedByEvent || usedByMaintenance || usedByParts || usedByServices) {
-        return { blocked: true, reason: "Cannot delete this bus — it has linked trips, event bookings, maintenance records, part purchases, or other service records." };
-      }
+      if (usedByTrip || usedByEvent) return { blocked: true, reason: "Cannot delete this bus — it has linked trips or event bookings." };
       return { blocked: false };
     },
     onPrint(row) { PrintReceipt.busReceipt(row); }
