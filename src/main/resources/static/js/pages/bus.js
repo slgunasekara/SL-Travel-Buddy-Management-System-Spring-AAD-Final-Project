@@ -15,7 +15,8 @@ function renderBusPage(container) {
       { name: "manufactureDate", label: "Manufacture Date", type: "date", required: true },
       { name: "insuranceExpiryDate", label: "Insurance Expiry Date", type: "date" },
       { name: "licenseRenewalDate", label: "License Renewal Date", type: "date" },
-      { name: "currentMileage", label: "Current Mileage (km)", type: "number" }
+      { name: "currentMileage", label: "Current Mileage (km)", type: "number" },
+      { name: "fuelEfficiency", label: "Fuel Efficiency (km/l)", type: "number", step: "0.01", placeholder: "e.g. 5" }
     ],
     columns: [
       { key: "busId", label: "ID" },
@@ -25,7 +26,8 @@ function renderBusPage(container) {
       { key: "noOfSeats", label: "Seats" },
       { key: "busStatus", label: "Status", render: r => `<span class="badge badge--${statusTone(r.busStatus)}">${r.busStatus}</span>` },
       { key: "insuranceExpiryDate", label: "Insurance", render: r => insuranceCell(r) },
-      { key: "currentMileage", label: "Mileage", render: r => `${Number(r.currentMileage || 0).toLocaleString()} km` }
+      { key: "currentMileage", label: "Mileage", render: r => `${Number(r.currentMileage || 0).toLocaleString()} km` },
+      { key: "fuelEfficiency", label: "Fuel Eff.", render: r => r.fuelEfficiency ? `${r.fuelEfficiency} km/l` : "-" }
     ],
     searchKeys: ["busBrandName", "busNumber", "busType", "busStatus"],
     defaultSort: (a, b) => b.busId - a.busId,
@@ -39,6 +41,7 @@ function renderBusPage(container) {
       if (!Validate.isPositiveNumber(data.noOfSeats)) return { error: "Number of seats must be a positive number." };
       if (data.manufactureDate && new Date(data.manufactureDate) > new Date()) return { error: "Manufacture date cannot be in the future!" };
       if (data.currentMileage !== "" && !Validate.isNonNegativeNumber(data.currentMileage)) return { error: "Mileage cannot be negative." };
+      if (data.fuelEfficiency !== "" && !Validate.isPositiveNumber(data.fuelEfficiency)) return { error: "Fuel efficiency must be a positive number." };
       if (data.insuranceExpiryDate && new Date(data.insuranceExpiryDate) < new Date(new Date().toDateString())) {
         Toast.warning("Insurance expiry date is in the past — please renew the insurance.", "Insurance Warning");
       }

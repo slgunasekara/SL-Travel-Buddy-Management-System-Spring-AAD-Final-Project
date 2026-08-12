@@ -1,11 +1,19 @@
 /* pages/tripExpenses.js — Manage Trip Expenses (mirrors ManageTripExpensesController).
-   Fuel, Parking and Other can all be entered together for a trip and
-   saved in a single action (each non-empty amount becomes its own
-   record behind the scenes). Selecting a trip also shows a salary field
-   for each crew member assigned to it (from Manage Trip → Assign Crew),
-   so their trip pay can be recorded in the same save. */
+   Redesigned around "one row per trip": selecting a trip loads its
+   existing Fuel/Parking/Other entry (if any) for editing, or starts a
+   fresh one. The date is taken from the trip automatically. A button
+   after the Other Amount field reveals a salary field for each of the
+   trip's assigned crew slots (Driver 1/2, Conductor, Helper, Cleaner —
+   matching Manage Trip's Assign Crew), so crew pay for this trip can be
+   saved in the very same action. */
 function renderTripExpensesPage(container) {
-  let editingId = null; // set only when editing ONE existing row from the table below
+  const CREW_SLOTS = [
+    { key: "driver1", label: "Driver 1", role: "DRIVER", index: 0 },
+    { key: "driver2", label: "Driver 2", role: "DRIVER", index: 1 },
+    { key: "conductor", label: "Conductor", role: "CONDUCTOR", index: 0 },
+    { key: "helper", label: "Helper", role: "HELPER", index: 0 },
+    { key: "cleaner", label: "Cleaner", role: "CLEANER", index: 0 }
+  ];
 
   const tripOptions = () => DB.readAll("trips").map(t => `<option value="${t.tripId}">#${t.tripId} — ${t.startLocation} → ${t.endLocation} (${Fmt.date(t.tripDate)})</option>`).join("");
 
@@ -13,56 +21,48 @@ function renderTripExpensesPage(container) {
     <div class="page-head">
       <div>
         <h2>Trip Expenses</h2>
-        <p class="muted">Enter fuel, parking, other costs and crew salaries for a trip together — one save covers all of it.</p>
+        <p class="muted">One entry per trip — fuel, parking, other costs and crew pay all saved together. The date comes from the trip.</p>
       </div>
     </div>
 
     <div class="card form-card">
       <div class="form-grid">
-        <div class="form-field">
+        <div class="form-field form-field--wide">
           <label>Trip <span class="req">*</span></label>
-          <select id="f_tripId" required><option value="">Select...</option>${tripOptions()}</select>
-        </div>
-        <div class="form-field">
-          <label>Date <span class="req">*</span></label>
-          <input type="date" id="f_date" required />
+          <select id="f_tripId" required><option value="">Select a trip...</option>${tripOptions()}</select>
         </div>
       </div>
       <div class="form-grid" style="margin-top:14px">
         <div class="form-field">
           <label>Fuel Amount (Rs.)</label>
-          <input type="number" step="0.01" id="f_fuelAmount" placeholder="0.00" />
+          <input type="number" step="0.01" id="f_fuelAmount" placeholder="0.00" disabled />
         </div>
         <div class="form-field">
           <label>Parking Amount (Rs.)</label>
-          <input type="number" step="0.01" id="f_parkingAmount" placeholder="0.00" />
+          <input type="number" step="0.01" id="f_parkingAmount" placeholder="0.00" disabled />
         </div>
         <div class="form-field">
           <label>Other Amount (Rs.)</label>
-          <input type="number" step="0.01" id="f_otherAmount" placeholder="0.00" />
+          <input type="number" step="0.01" id="f_otherAmount" placeholder="0.00" disabled />
         </div>
         <div class="form-field form-field--wide" id="otherDescWrap">
           <label>What is the "Other" expense for? <span id="otherReqMark"></span></label>
           <input type="text" id="f_otherDescription" placeholder="Only needed if you entered an Other amount above" disabled />
         </div>
-        <div class="form-field form-field--wide" id="tripNotesWrap">
-          <label>Trip Notes <span class="muted" style="font-weight:400;">(optional — applies to all expenses saved together here)</span></label>
-          <textarea id="f_tripNotes" rows="2" placeholder="e.g. Colombo-Kandy return trip, heavy traffic day"></textarea>
+        <div class="form-field form-field--wide">
+          <button type="button" class="btn btn--secondary btn--sm" id="btnToggleCrew" disabled>+ Add Crew Salaries for This Trip</button>
+        </div>
+        <div class="form-field form-field--wide" id="crewSalariesWrap" style="display:none;">
+          <div class="form-grid" id="crewSalaryFields"></div>
+        </div>
+        <div class="form-field form-field--wide">
+          <label>Trip Notes <span class="muted" style="font-weight:400;">(optional)</span></label>
+          <textarea id="f_tripNotes" rows="2" placeholder="e.g. heavy traffic day, extra stop for repairs" disabled></textarea>
         </div>
       </div>
-
-      <div id="crewSalariesWrap" style="display:none; margin-top:18px;">
-        <h4 style="font-size:13.5px; color:var(--primary-900); margin-bottom:8px;">Crew Salaries for This Trip <span class="muted" style="font-weight:400;">(optional — pay the assigned crew for this trip in the same save)</span></h4>
-        <div class="form-grid" id="crewSalaryFields"></div>
-      </div>
-
-      <p class="muted" id="editHint" style="margin-top:10px; display:none;">
-        Editing a single existing expense — only that record will be updated. Reset to go back to entering everything together.
-      </p>
       <div class="form-actions">
-        <button class="btn btn--primary" id="btnSave">Save</button>
-        <button class="btn btn--secondary" id="btnUpdate" disabled>Update</button>
-        <button class="btn btn--danger" id="btnDelete" disabled>Delete</button>
+        <button class="btn btn--primary" id="btnSave" disabled>Save</button>
+        <button class="btn btn--danger" id="btnDelete" disabled>Delete Entry</button>
         <button class="btn btn--ghost" id="btnReset">Reset</button>
       </div>
     </div>
@@ -78,7 +78,11 @@ function renderTripExpensesPage(container) {
       </div>
       <div class="table-wrap">
         <table class="data-table" id="dataTable">
-          <thead><tr><th>ID</th><th>Trip</th><th>Type</th><th>Amount</th><th>Date</th><th>Note</th><th class="col-actions">Actions</th></tr></thead>
+          <thead><tr>
+            <th>ID</th><th>Trip</th><th>Date</th><th>Fuel</th><th>Parking</th><th>Other</th>
+            <th>Driver 1</th><th>Driver 2</th><th>Conductor</th><th>Helper</th><th>Cleaner</th>
+            <th class="col-actions">Actions</th>
+          </tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -89,95 +93,132 @@ function renderTripExpensesPage(container) {
   const otherEl = () => qs("#f_otherAmount");
   const otherDescEl = () => qs("#f_otherDescription");
   const notesEl = () => qs("#f_tripNotes");
+  let currentTripId = null;
 
-  function combineDescription(specific, general) {
-    return [specific, general].map(s => (s || "").trim()).filter(Boolean).join(" — ");
-  }
-
+  otherEl().addEventListener("input", syncOtherDescState);
   function syncOtherDescState() {
     const hasOther = Number(otherEl().value) > 0;
-    otherDescEl().disabled = !hasOther && !editingId;
     const mark = qs("#otherReqMark");
     if (mark) mark.innerHTML = hasOther ? '<span class="req">*</span>' : "";
-    if (!hasOther && !editingId) otherDescEl().value = "";
   }
-  otherEl().addEventListener("input", syncOtherDescState);
 
-  /* ---- Crew salary fields, shown once a trip is picked (create mode only) ---- */
-  function renderCrewSalaryFields() {
-    const wrap = qs("#crewSalariesWrap");
-    const tripId = Number(qs("#f_tripId").value);
-    if (editingId || !tripId) { wrap.style.display = "none"; return; }
+  function existingRowFor(tripId) {
+    return DB.readAll("tripExpenses").find(r => r.tripId === tripId) || null;
+  }
 
+  function crewSlotInfo(tripId) {
     const crew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
-    const fieldsHost = qs("#crewSalaryFields");
-    if (crew.length === 0) {
-      fieldsHost.innerHTML = `<p class="muted">No crew assigned to this trip yet — assign crew from <a href="#/trips" class="link">Manage Trip</a> first.</p>`;
-    } else {
-      fieldsHost.innerHTML = crew.map(te => `
-        <div class="form-field">
-          <label>${Fmt.escapeHtml(Q.empName(te.empId))} <span class="muted" style="font-weight:400;">(${te.roleInTrip})</span></label>
-          <input type="number" step="0.01" class="crew-salary-input" data-trip-emp-id="${te.tripEmpId}" data-emp-id="${te.empId}" data-role="${te.roleInTrip}" placeholder="0.00" />
-        </div>`).join("");
+    const salaries = DB.readAll("employeeSalaries").filter(s => s.tripId === tripId && s.fromTripExpense);
+    const drivers = crew.filter(c => c.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
+    const byRole = { CONDUCTOR: crew.find(c => c.roleInTrip === "CONDUCTOR"), HELPER: crew.find(c => c.roleInTrip === "HELPER"), CLEANER: crew.find(c => c.roleInTrip === "CLEANER") };
+
+    function info(rec) {
+      if (!rec) return null;
+      const sal = salaries.find(s => s.empId === rec.empId);
+      return { empId: rec.empId, name: Q.empName(rec.empId), amount: sal ? sal.amount : null };
     }
-    wrap.style.display = "block";
+    return {
+      driver1: info(drivers[0]), driver2: info(drivers[1]),
+      conductor: info(byRole.CONDUCTOR), helper: info(byRole.HELPER), cleaner: info(byRole.CLEANER)
+    };
   }
-  qs("#f_tripId").addEventListener("change", renderCrewSalaryFields);
+
+  function renderCrewSalaryFields(tripId) {
+    const info = crewSlotInfo(tripId);
+    const host = qs("#crewSalaryFields");
+    host.innerHTML = CREW_SLOTS.map(s => {
+      const slot = info[s.key];
+      return `
+        <div class="form-field">
+          <label>${s.label} ${slot ? `<span class="muted" style="font-weight:400;">(${Fmt.escapeHtml(slot.name)})</span>` : `<span class="muted" style="font-weight:400;">(not assigned)</span>`}</label>
+          <input type="number" step="0.01" class="crew-salary-input" data-slot="${s.key}" placeholder="0.00" value="${slot && slot.amount !== null ? slot.amount : ""}" ${slot ? "" : "disabled"} />
+        </div>`;
+    }).join("");
+    return info;
+  }
+
+  function anyCrewSalarySaved(info) {
+    return Object.values(info).some(s => s && s.amount !== null);
+  }
+
+  function loadTrip(tripId) {
+    currentTripId = tripId;
+    const enable = !!tripId;
+    ["f_fuelAmount", "f_parkingAmount", "f_otherAmount", "f_otherDescription", "f_tripNotes", "btnToggleCrew", "btnSave"].forEach(id => qs("#" + id).disabled = !enable);
+
+    if (!tripId) {
+      fuelEl().value = ""; parkEl().value = ""; otherEl().value = ""; otherDescEl().value = ""; notesEl().value = "";
+      qs("#crewSalariesWrap").style.display = "none";
+      qs("#btnDelete").disabled = true;
+      return;
+    }
+
+    const existing = existingRowFor(tripId);
+    fuelEl().value = existing ? (existing.fuelAmount || "") : "";
+    parkEl().value = existing ? (existing.parkingAmount || "") : "";
+    otherEl().value = existing ? (existing.otherAmount || "") : "";
+    otherDescEl().value = existing ? (existing.otherDescription || "") : "";
+    notesEl().value = existing ? (existing.notes || "") : "";
+    syncOtherDescState();
+    qs("#btnDelete").disabled = !existing;
+
+    const info = renderCrewSalaryFields(tripId);
+    qs("#crewSalariesWrap").style.display = anyCrewSalarySaved(info) ? "block" : "none";
+  }
+
+  qs("#f_tripId").addEventListener("change", (e) => loadTrip(e.target.value ? Number(e.target.value) : null));
+
+  qs("#btnToggleCrew").addEventListener("click", () => {
+    const wrap = qs("#crewSalariesWrap");
+    const showing = wrap.style.display !== "none";
+    if (!showing) renderCrewSalaryFields(currentTripId);
+    wrap.style.display = showing ? "none" : "block";
+  });
 
   function clearForm() {
-    editingId = null;
     qs("#f_tripId").value = "";
-    qs("#f_date").value = "";
-    fuelEl().value = "";
-    parkEl().value = "";
-    otherEl().value = "";
-    otherDescEl().value = "";
-    notesEl().value = "";
-    qs("#otherDescWrap label").innerHTML = `What is the "Other" expense for? <span id="otherReqMark"></span>`;
-    qs("#tripNotesWrap").style.display = "";
-    qs("#crewSalariesWrap").style.display = "none";
-    syncOtherDescState();
-    qs("#editHint").style.display = "none";
-    ["f_tripId", "f_date", "f_fuelAmount", "f_parkingAmount", "f_otherAmount"].forEach(id => qs("#" + id).disabled = false);
-    qs("#btnSave").disabled = false;
-    qs("#btnSave").style.display = "";
-    qs("#btnUpdate").disabled = true;
-    qs("#btnDelete").disabled = true;
+    loadTrip(null);
     qsa("#dataTable tbody tr").forEach(r => r.classList.remove("row-selected"));
   }
 
-  function getRows() {
-    return DB.readAll("tripExpenses");
-  }
+  function getRows() { return DB.readAll("tripExpenses"); }
 
   function renderTable() {
     let rows = getRows();
     const term = qs("#searchBox").value.trim().toLowerCase();
     if (term) {
-      rows = rows.filter(r =>
-        (r.tripExpType || "").toLowerCase().includes(term) ||
-        (r.description || "").toLowerCase().includes(term) ||
-        String(r.tripId).includes(term)
-      );
+      rows = rows.filter(r => {
+        const t = Q.trip(r.tripId);
+        return (r.notes || "").toLowerCase().includes(term) ||
+          (r.otherDescription || "").toLowerCase().includes(term) ||
+          String(r.tripId).includes(term) ||
+          (t && `${t.startLocation} ${t.endLocation}`.toLowerCase().includes(term));
+      });
     }
-    rows = [...rows].sort((a, b) => b.tripExpId - a.tripExpId);
+    rows = [...rows].sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.tripExpId - a.tripExpId);
 
     const tbody = qs("#dataTable tbody");
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trip expenses recorded yet.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12"><div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trip expenses recorded yet.</div></td></tr>`;
     } else {
       tbody.innerHTML = rows.map(r => {
         const t = Q.trip(r.tripId);
         const tripLabel = t ? `#${r.tripId} (${t.startLocation} → ${t.endLocation})` : `#${r.tripId}`;
-        const typeTone = r.tripExpType === "FUEL" ? "amber" : r.tripExpType === "PARKING" ? "blue" : "gray";
+        const info = crewSlotInfo(r.tripId);
+        const crewCell = (s) => s ? `${Fmt.escapeHtml(s.name)}${s.amount !== null ? `<br><strong>${Fmt.money(s.amount)}</strong>` : ""}` : "-";
         return `
-        <tr data-id="${r.tripExpId}">
+        <tr data-id="${r.tripExpId}" data-trip-id="${r.tripId}">
           <td>${r.tripExpId}</td>
           <td>${tripLabel}</td>
-          <td><span class="badge badge--${typeTone}">${r.tripExpType}</span></td>
-          <td>${Fmt.money(r.amount)}</td>
           <td>${Fmt.date(r.date)}</td>
-          <td>${Fmt.escapeHtml(r.description || "-")}</td>
+          <td>${r.fuelAmount ? Fmt.money(r.fuelAmount) : "-"}</td>
+          <td>${r.parkingAmount ? Fmt.money(r.parkingAmount) : "-"}</td>
+          <td>${r.otherAmount ? Fmt.money(r.otherAmount) : "-"}</td>
+          <td>${crewCell(info.driver1)}</td>
+          <td>${crewCell(info.driver2)}</td>
+          <td>${crewCell(info.conductor)}</td>
+          <td>${crewCell(info.helper)}</td>
+          <td>${crewCell(info.cleaner)}</td>
           <td class="col-actions">
             <button class="icon-btn icon-btn--print" data-act="print" title="Print">🖨</button>
             <button class="icon-btn" data-act="edit" title="Edit">✎</button>
@@ -189,155 +230,119 @@ function renderTripExpensesPage(container) {
     qs("#rowCount").textContent = `${rows.length} record${rows.length === 1 ? "" : "s"}`;
 
     qsa("#dataTable tbody tr[data-id]").forEach(tr => {
-      const id = Number(tr.dataset.id);
-      tr.addEventListener("click", (e) => { if (!e.target.closest("[data-act]")) selectRow(id); });
-      tr.querySelector('[data-act="edit"]').addEventListener("click", () => selectRow(id));
-      tr.querySelector('[data-act="del"]').addEventListener("click", () => doDelete(id));
-      tr.querySelector('[data-act="print"]').addEventListener("click", () => {
-        const row = getRows().find(r => r.tripExpId === id);
-        const t = Q.trip(row.tripId);
-        const tripLabel = t ? `#${row.tripId} (${t.startLocation} → ${t.endLocation})` : `#${row.tripId}`;
-        PrintReceipt.tripExpenseReceipt(row, tripLabel);
-      });
+      const tripId = Number(tr.dataset.tripId);
+      tr.addEventListener("click", (e) => { if (!e.target.closest("[data-act]")) selectTrip(tripId); });
+      tr.querySelector('[data-act="edit"]').addEventListener("click", () => selectTrip(tripId));
+      tr.querySelector('[data-act="del"]').addEventListener("click", () => doDelete(tripId));
+      tr.querySelector('[data-act="print"]').addEventListener("click", () => printRow(tripId));
     });
   }
 
-  function selectRow(id) {
-    const row = getRows().find(r => r.tripExpId === id);
+  function selectTrip(tripId) {
+    qs("#f_tripId").value = tripId;
+    loadTrip(tripId);
+    qsa("#dataTable tbody tr").forEach(r => r.classList.toggle("row-selected", Number(r.dataset.tripId) === tripId));
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function printRow(tripId) {
+    const row = existingRowFor(tripId);
     if (!row) return;
-    editingId = id;
-    qs("#f_tripId").value = row.tripId;
-    qs("#f_date").value = row.date;
-    fuelEl().value = ""; parkEl().value = ""; otherEl().value = "";
-    if (row.tripExpType === "FUEL") fuelEl().value = row.amount;
-    else if (row.tripExpType === "PARKING") parkEl().value = row.amount;
-    else otherEl().value = row.amount;
-
-    // In edit mode we work with ONE record's raw description directly,
-    // rather than trying to split it back into "specific" + "general" parts.
-    otherDescEl().value = row.description || "";
-    otherDescEl().disabled = false;
-    qs("#otherDescWrap label").innerHTML = `Description`;
-    qs("#tripNotesWrap").style.display = "none";
-    qs("#crewSalariesWrap").style.display = "none";
-
-    ["f_fuelAmount", "f_parkingAmount", "f_otherAmount"].forEach(id2 => {
-      const keep = (id2 === "f_fuelAmount" && row.tripExpType === "FUEL") ||
-                   (id2 === "f_parkingAmount" && row.tripExpType === "PARKING") ||
-                   (id2 === "f_otherAmount" && row.tripExpType === "OTHERS");
-      qs("#" + id2).disabled = !keep;
-    });
-
-    qs("#editHint").style.display = "block";
-    qs("#btnSave").style.display = "none";
-    qs("#btnUpdate").disabled = false;
-    qs("#btnDelete").disabled = false;
-    qsa("#dataTable tbody tr").forEach(r => r.classList.toggle("row-selected", Number(r.dataset.id) === id));
+    const t = Q.trip(tripId);
+    const tripLabel = t ? `#${tripId} (${t.startLocation} → ${t.endLocation})` : `#${tripId}`;
+    PrintReceipt.tripExpenseReceipt(row, tripLabel, crewSlotInfo(tripId));
   }
 
-  async function doDelete(id) {
-    const ok = await confirmDialog({ title: "Delete Trip Expense", message: "Are you sure you want to delete this expense record?", okText: "Delete", danger: true });
+  async function doDelete(tripId) {
+    const ok = await confirmDialog({ title: "Delete Trip Expense Entry", message: "This removes the fuel/parking/other costs AND any crew salaries saved through this page for this trip. Continue?", okText: "Delete", danger: true });
     if (!ok) return;
-    DB.writeAll("tripExpenses", getRows().filter(r => r.tripExpId !== id));
-    Toast.success("Trip expense deleted successfully!");
-    if (editingId === id) clearForm();
+    DB.writeAll("tripExpenses", getRows().filter(r => r.tripId !== tripId));
+    DB.writeAll("employeeSalaries", DB.readAll("employeeSalaries").filter(s => !(s.tripId === tripId && s.fromTripExpense)));
+    Toast.success("Trip expense entry deleted.");
+    if (currentTripId === tripId) clearForm();
     renderTable();
   }
 
   function doSave() {
-    const tripId = Number(qs("#f_tripId").value);
-    const date = qs("#f_date").value;
+    const tripId = currentTripId;
     if (!tripId) { Toast.warning("Please select a trip."); return; }
-    if (!date) { Toast.warning("Please select a date."); return; }
+    const trip = Q.trip(tripId);
+    if (!trip) { Toast.error("Selected trip could not be found."); return; }
 
-    const generalNotes = notesEl().value.trim();
-    const entries = [
-      { type: "FUEL", amount: Number(fuelEl().value) || 0, description: combineDescription("", generalNotes) },
-      { type: "PARKING", amount: Number(parkEl().value) || 0, description: combineDescription("", generalNotes) },
-      { type: "OTHERS", amount: Number(otherEl().value) || 0, description: combineDescription(otherDescEl().value.trim(), generalNotes) }
-    ].filter(e => e.amount > 0);
+    const fuel = Number(fuelEl().value) || 0;
+    const parking = Number(parkEl().value) || 0;
+    const other = Number(otherEl().value) || 0;
+    const otherDesc = otherDescEl().value.trim();
+    const notes = notesEl().value.trim();
+    const crewInputs = qsa(".crew-salary-input").filter(el => !el.disabled);
+    const anyCrewFilled = crewInputs.some(el => Number(el.value) > 0);
 
-    const crewSalaryInputs = qsa(".crew-salary-input").filter(el => Number(el.value) > 0);
-
-    if (entries.length === 0 && crewSalaryInputs.length === 0) {
+    if (fuel <= 0 && parking <= 0 && other <= 0 && !anyCrewFilled) {
       Toast.warning("Enter at least one amount (Fuel, Parking, Other, or a crew salary) before saving.");
       return;
     }
-    const otherHasAmount = Number(otherEl().value) > 0;
-    if (otherHasAmount && !otherDescEl().value.trim()) {
+    if (other > 0 && !otherDesc) {
       Toast.warning('Please describe what the "Other" expense is for.');
       return;
     }
 
-    const expenseRows = getRows();
-    entries.forEach(e => {
-      expenseRows.push({
-        tripExpId: DB.nextId("tripExpenses"),
-        tripId, tripExpType: e.type, amount: e.amount, description: e.description, date,
-        createdBy: Session.currentUser().userId
-      });
-    });
-    if (entries.length > 0) DB.writeAll("tripExpenses", expenseRows);
-
-    let salaryCount = 0;
-    if (crewSalaryInputs.length > 0) {
-      const salaryRows = DB.readAll("employeeSalaries");
-      crewSalaryInputs.forEach(el => {
-        salaryRows.push({
-          salaryId: DB.nextId("employeeSalaries"),
-          empId: Number(el.dataset.empId),
-          tripId, amount: Number(el.value), date,
-          description: `${el.dataset.role} salary for Trip #${tripId}`,
-          createdBy: Session.currentUser().userId
-        });
-        salaryCount++;
-      });
-      DB.writeAll("employeeSalaries", salaryRows);
-    }
-
-    const parts = [];
-    if (entries.length) parts.push(`${entries.length} expense${entries.length === 1 ? "" : "s"}`);
-    if (salaryCount) parts.push(`${salaryCount} crew salary${salaryCount === 1 ? "" : " payments"}`);
-    Toast.success(`Saved ${parts.join(" and ")} for this trip!`);
-    clearForm();
-    renderTable();
-  }
-
-  function doUpdate() {
-    if (!editingId) return;
-    const tripId = Number(qs("#f_tripId").value);
-    const date = qs("#f_date").value;
-    if (!tripId || !date) { Toast.warning("Trip and date are required."); return; }
-
+    // Upsert the wide trip-expense row.
     const rows = getRows();
-    const idx = rows.findIndex(r => r.tripExpId === editingId);
-    if (idx < 0) return;
-    const type = rows[idx].tripExpType;
-    let amount;
-    if (type === "FUEL") amount = Number(fuelEl().value) || 0;
-    else if (type === "PARKING") amount = Number(parkEl().value) || 0;
-    else amount = Number(otherEl().value) || 0;
-
-    if (amount <= 0) { Toast.warning("Amount must be a positive number."); return; }
-    const description = otherDescEl().value.trim();
-    if (type === "OTHERS" && !description) { Toast.warning('Please add a description for this "Other" expense.'); return; }
-
-    rows[idx] = { ...rows[idx], tripId, date, amount, description };
+    const idx = rows.findIndex(r => r.tripId === tripId);
+    const rowData = {
+      tripId, date: trip.tripDate,
+      fuelAmount: fuel, parkingAmount: parking, otherAmount: other,
+      otherDescription: other > 0 ? otherDesc : "",
+      notes
+    };
+    if (idx >= 0) rows[idx] = { ...rows[idx], ...rowData };
+    else rows.push({ tripExpId: DB.nextId("tripExpenses"), ...rowData, createdBy: Session.currentUser().userId });
     DB.writeAll("tripExpenses", rows);
-    Toast.success("Trip expense updated successfully!");
-    clearForm();
+
+    // Upsert/remove crew salary entries.
+    let salaries = DB.readAll("employeeSalaries");
+    let salaryChanges = 0;
+    const info = crewSlotInfo(tripId);
+    CREW_SLOTS.forEach(s => {
+      const slot = info[s.key];
+      const input = qs(`.crew-salary-input[data-slot="${s.key}"]`);
+      if (!slot || !input) return;
+      const amount = Number(input.value) || 0;
+      const existingSalary = salaries.find(sal => sal.tripId === tripId && sal.empId === slot.empId && sal.fromTripExpense);
+      if (amount > 0) {
+        if (existingSalary) {
+          const sidx = salaries.findIndex(sal => sal.salaryId === existingSalary.salaryId);
+          salaries[sidx] = { ...salaries[sidx], amount, date: trip.tripDate };
+        } else {
+          salaries.push({
+            salaryId: DB.nextId("employeeSalaries"), empId: slot.empId, tripId, amount, date: trip.tripDate,
+            description: `${s.label} salary for Trip #${tripId}`, fromTripExpense: true,
+            createdBy: Session.currentUser().userId
+          });
+        }
+        salaryChanges++;
+      } else if (existingSalary) {
+        salaries = salaries.filter(sal => sal.salaryId !== existingSalary.salaryId);
+        salaryChanges++;
+      }
+    });
+    if (salaryChanges > 0) DB.writeAll("employeeSalaries", salaries);
+
+    Toast.success("Trip expenses saved!");
     renderTable();
+    loadTrip(tripId);
   }
 
   function exportCsv() {
     const rows = getRows();
     if (rows.length === 0) { Toast.warning("No data to export!"); return; }
-    const headers = ["ID", "Trip", "Type", "Amount", "Date", "Note"];
+    const headers = ["ID", "Trip", "Date", "Fuel", "Parking", "Other", "Other Desc", "Notes"];
     const lines = [headers.join(",")];
     rows.forEach(r => {
       const t = Q.trip(r.tripId);
       const tripLabel = t ? `#${r.tripId} (${t.startLocation} -> ${t.endLocation})` : `#${r.tripId}`;
-      lines.push([r.tripExpId, tripLabel, r.tripExpType, r.amount, r.date, r.description || ""].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+      lines.push([r.tripExpId, tripLabel, r.date, r.fuelAmount || 0, r.parkingAmount || 0, r.otherAmount || 0, r.otherDescription || "", r.notes || ""]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
     });
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -349,8 +354,7 @@ function renderTripExpensesPage(container) {
   }
 
   qs("#btnSave").addEventListener("click", doSave);
-  qs("#btnUpdate").addEventListener("click", doUpdate);
-  qs("#btnDelete").addEventListener("click", () => editingId && doDelete(editingId));
+  qs("#btnDelete").addEventListener("click", () => currentTripId && doDelete(currentTripId));
   qs("#btnReset").addEventListener("click", clearForm);
   qs("#btnRefresh").addEventListener("click", () => { qs("#searchBox").value = ""; renderTable(); });
   qs("#btnExport").addEventListener("click", exportCsv);

@@ -45,8 +45,10 @@ const Q = (() => {
     const tripDateMap = {};
     DB.readAll("trips").forEach(t => tripDateMap[t.tripId] = t.tripDate);
     tripExpenses.forEach(e => {
-      const d = tripDateMap[e.tripId];
-      if (d && d >= fromDate && d <= toDate) bucket(d).tripExpenses += Number(e.amount) || 0;
+      const d = e.date || tripDateMap[e.tripId];
+      if (d && d >= fromDate && d <= toDate) {
+        bucket(d).tripExpenses += (Number(e.fuelAmount) || 0) + (Number(e.parkingAmount) || 0) + (Number(e.otherAmount) || 0);
+      }
     });
 
     salaries.forEach(s => { if (s.date >= fromDate && s.date <= toDate) bucket(s.date).salaries += Number(s.amount) || 0; });
@@ -170,10 +172,15 @@ const Q = (() => {
   }
 
   function expenseReport(fromDate, toDate) {
-    return DB.readAll("tripExpenses")
+    const rows = [];
+    DB.readAll("tripExpenses")
       .filter(e => e.date >= fromDate && e.date <= toDate)
-      .map(e => ({ expenseDate: e.date, amount: e.amount, category: e.tripExpType }))
-      .sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
+      .forEach(e => {
+        if (Number(e.fuelAmount) > 0) rows.push({ expenseDate: e.date, amount: e.fuelAmount, category: "FUEL" });
+        if (Number(e.parkingAmount) > 0) rows.push({ expenseDate: e.date, amount: e.parkingAmount, category: "PARKING" });
+        if (Number(e.otherAmount) > 0) rows.push({ expenseDate: e.date, amount: e.otherAmount, category: "OTHERS" });
+      });
+    return rows.sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
   }
 
   function salaryReport(fromDate, toDate) {

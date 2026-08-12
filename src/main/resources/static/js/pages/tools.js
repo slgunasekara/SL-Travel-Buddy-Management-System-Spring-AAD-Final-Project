@@ -13,6 +13,13 @@ function renderToolsPage(container) {
       <div class="card tool-card">
         <div class="card__head"><h3>${icon("route")} Fuel Cost Calculator</h3></div>
         <div class="form-grid">
+          <div class="form-field form-field--wide">
+            <label>Bus <span class="muted" style="font-weight:400;">(optional — auto-fills fuel efficiency below)</span></label>
+            <select id="fuelBusSelect">
+              <option value="">Select a bus, or enter efficiency manually below...</option>
+              ${DB.readAll("buses").map(b => `<option value="${b.busId}" data-eff="${b.fuelEfficiency || ""}">${b.busNumber} — ${b.busBrandName}${b.fuelEfficiency ? ` (${b.fuelEfficiency} km/l)` : " (no efficiency on file)"}</option>`).join("")}
+            </select>
+          </div>
           <div class="form-field"><label>Distance (km)</label><input type="number" id="fuelDistance" step="0.01" placeholder="e.g. 250" /></div>
           <div class="form-field"><label>Fuel Efficiency (km/l)</label><input type="number" id="fuelEfficiency" step="0.01" placeholder="e.g. 5" /></div>
           <div class="form-field"><label>Fuel Price per Litre (Rs.)</label><input type="number" id="fuelPrice" step="0.01" placeholder="e.g. 450" /></div>
@@ -57,6 +64,17 @@ function renderToolsPage(container) {
     </p>`;
 
   /* ---- Fuel cost calculator ---- */
+  /* ---- Fuel cost calculator: picking a bus auto-fills its fuel efficiency ---- */
+  qs("#fuelBusSelect").addEventListener("change", (e) => {
+    const opt = e.target.selectedOptions[0];
+    const eff = opt ? opt.dataset.eff : "";
+    if (eff) {
+      qs("#fuelEfficiency").value = eff;
+    } else if (opt && opt.value) {
+      Toast.warning("This bus doesn't have a fuel efficiency on file yet — add one from Manage Bus, or type it in manually below.");
+    }
+  });
+
   qs("#btnFuelCalc").addEventListener("click", () => {
     const distance = Number(qs("#fuelDistance").value);
     const eff = Number(qs("#fuelEfficiency").value);

@@ -101,14 +101,13 @@ localStorage.clear(); location.reload();
   screen, the sidebar, and the browser tab favicon
 
 ## Workflow refinements
-- **Trip Expenses, combined entry** — enter Fuel, Parking and Other
-  amounts for a trip together and save once; each non-empty amount is
-  stored as its own record behind the scenes. There are two description
-  fields: "What is the Other expense for?" (specific, required only when
-  an Other amount is entered) and "Trip Notes" (general, optional,
-  applied to every record saved together). Editing a single existing
-  expense from the table shows just that one record's description,
-  directly editable.
+- **Trip Expenses — one row per trip.** Pick a trip and its Fuel,
+  Parking and Other costs are all entered (and edited) together as a
+  single entry — no more separate rows per expense type. There's no
+  date field to fill in either; the date is taken automatically from
+  the trip. "What is the Other expense for?" only needs filling in when
+  you enter an Other amount, and there's a general optional "Trip
+  Notes" field too.
 - **Driving Licence No., conditionally required** — on Manage Employee,
   it's now required only when the Category is Driver or Manager.
 - **Employee Salary, strict search-select** — instead of a long dropdown,
@@ -125,24 +124,34 @@ localStorage.clear(); location.reload();
   fuel/profit/time calculators and route finder remain. (A "Distance
   Checker" via Google Maps was tried and then removed again — Route
   Finder covers that need well enough on its own.)
+- **Fuel efficiency per bus** — Manage Bus now has a Fuel Efficiency
+  (km/l) field. In Tools → Fuel Cost Calculator, pick a bus from a
+  dropdown to auto-fill its efficiency, or just type a value manually
+  as before — both work.
 - **Dashboard income breakdown** — an animated donut chart shows how
   total income splits into expenses vs. net profit, alongside the
   existing 30-day trend chart, alerts, and month-over-month comparison.
-- **Crew roles updated** — Assign Crew (on Manage Trip) now offers
-  Driver / Conductor / Helper / Cleaner (Assistant was replaced with
-  Cleaner), searched by typing a name instead of a long dropdown, in a
-  larger, easier-to-use modal. A bug where the modal's footer "Close"
-  button silently did nothing (it was accidentally sharing behavior with
-  the header × button) is fixed.
-- **Trip Expenses now includes crew pay** — once you pick a trip that has
-  crew assigned (via Manage Trip), a salary field appears for each crew
-  member so you can pay them for that trip in the very same save as the
-  fuel/parking/other costs.
+- **Assign Crew redesigned** — Manage Trip's crew assignment is now 5
+  fixed, type-to-search fields — Driver 1, Driver 2 (optional, for
+  trips needing two drivers), Conductor, Helper, Cleaner — instead of
+  adding one role at a time from a dropdown, in a larger, easier-to-use
+  modal. (A bug where the modal's footer "Close" button silently did
+  nothing, because it was accidentally sharing behavior with the header
+  × button, is fixed.)
+- **Trip Expenses now includes crew pay** — after entering Fuel/Parking/
+  Other, an "+ Add Crew Salaries for This Trip" button reveals a salary
+  field for each of that trip's assigned crew slots (Driver 1/2,
+  Conductor, Helper, Cleaner, pulled from Manage Trip), so they can be
+  paid for that trip in the very same save.
 - **Employee Salary refocused on Managers** — Driver/Conductor/Helper/
   Cleaner pay is now entered from Trip Expenses (see above), since it's
   trip-specific. Employee Salary's search now only suggests Managers for
   *new* entries; existing salary records for any category can still be
   viewed, edited, and deleted here exactly as before.
+- **Other Services now trip-linked** — a trip is required (instead of
+  optional), and there's no date field to fill in — like Trip Expenses,
+  the date is taken automatically from the selected trip.
+
 - **Top Conductors leaderboard** — Reports → Leaderboard now also ranks
   conductors by *average income per trip* (not trip count), alongside
   the existing Top Routes and Top Drivers lists.

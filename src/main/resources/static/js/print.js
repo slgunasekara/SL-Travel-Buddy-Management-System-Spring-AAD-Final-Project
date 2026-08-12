@@ -159,7 +159,8 @@ const PrintReceipt = (() => {
         { label: "Manufacture Date", value: Fmt.date(b.manufactureDate) },
         { label: "Insurance Expiry", value: b.insuranceExpiryDate ? Fmt.date(b.insuranceExpiryDate) : "-" },
         { label: "License Renewal", value: b.licenseRenewalDate ? Fmt.date(b.licenseRenewalDate) : "-" },
-        { label: "Current Mileage", value: `${Number(b.currentMileage || 0).toLocaleString()} km` }
+        { label: "Current Mileage", value: `${Number(b.currentMileage || 0).toLocaleString()} km` },
+        { label: "Fuel Efficiency", value: b.fuelEfficiency ? `${b.fuelEfficiency} km/l` : "-" }
       ]
     });
   }
@@ -271,19 +272,35 @@ const PrintReceipt = (() => {
     });
   }
 
-  function tripExpenseReceipt(e, tripLabel) {
+  function tripExpenseReceipt(e, tripLabel, crewInfo) {
+    const rows = [
+      { label: "Trip", value: tripLabel },
+      { label: "Date", value: Fmt.date(e.date) }
+    ];
+    if (e.fuelAmount > 0) rows.push({ label: "Fuel", value: Fmt.money(e.fuelAmount) });
+    if (e.parkingAmount > 0) rows.push({ label: "Parking", value: Fmt.money(e.parkingAmount) });
+    if (e.otherAmount > 0) {
+      rows.push({ label: "Other", value: Fmt.money(e.otherAmount) });
+      if (e.otherDescription) rows.push({ label: "Other — for", value: e.otherDescription });
+    }
+    if (crewInfo) {
+      const labels = { driver1: "Driver 1", driver2: "Driver 2", conductor: "Conductor", helper: "Helper", cleaner: "Cleaner" };
+      Object.keys(labels).forEach(k => {
+        const slot = crewInfo[k];
+        if (slot && slot.amount !== null) rows.push({ label: `${labels[k]} Salary`, value: `${slot.name} — ${Fmt.money(slot.amount)}` });
+      });
+    }
+    if (e.notes) rows.push({ label: "Notes", value: e.notes });
+
+    const total = (Number(e.fuelAmount) || 0) + (Number(e.parkingAmount) || 0) + (Number(e.otherAmount) || 0);
+
     open({
-      docTitle: `Trip Expense - ${e.tripExpType}`,
+      docTitle: `Trip Expense - Trip ${tripLabel}`,
       heading: "Trip Expense Receipt",
       subheading: `Record #${e.tripExpId}`,
-      rows: [
-        { label: "Trip", value: tripLabel },
-        { label: "Type", value: e.tripExpType },
-        { label: "Date", value: Fmt.date(e.date) },
-        ...(e.description ? [{ label: "Notes", value: e.description }] : [])
-      ],
-      totalLabel: "Amount",
-      totalValue: Fmt.money(e.amount)
+      rows,
+      totalLabel: "Fuel + Parking + Other",
+      totalValue: Fmt.money(total)
     });
   }
 
