@@ -58,13 +58,38 @@ localStorage.clear(); location.reload();
   Google Maps directions
 - Manage Users — Owner-only system user administration
 
+## Sending real OTP emails (optional but recommended)
+By default, "Forgot password" generates and validates a real OTP exactly
+like the desktop app did, but shows it on-screen instead of emailing it —
+because a static HTML/JS site has no safe place to store real mailbox
+credentials (see the security note below).
+
+To make the OTP actually arrive in the user's inbox:
+1. Create a free account at **https://www.emailjs.com** (200 emails/month
+   free).
+2. Add an Email Service → connect your Gmail via OAuth (no password
+   needed) → copy the **Service ID**.
+3. Create an Email Template using these variable names: `{{to_email}}`,
+   `{{to_name}}`, `{{otp_code}}`, `{{app_name}}` → copy the **Template ID**.
+4. Copy your **Public Key** from Account → General.
+5. Open `js/emailConfig.js` and paste the three values into `EmailConfig`.
+
+That's it — no other code changes needed. If these values are left as
+placeholders, or the send fails for any reason (offline, misconfigured),
+the app automatically falls back to showing the OTP on-screen with a
+clear "demo mode" label, so the flow never breaks.
+
+**⚠️ Security note:** the original desktop app's `EmailService.java` had a
+real Gmail app password hardcoded in plain text. That is *never* copied
+into this web app — a browser-side app is fully viewable via "view
+source", so any embedded secret is effectively public. If that app
+password is still active, revoke/regenerate it from your Google Account →
+Security → App Passwords.
+
 ## Notes on the web adaptation
 - The desktop app used JasperReports to print PDF reports; this web
   version exports the same data as **CSV** instead, since PDF report
   generation isn't part of a plain HTML/CSS/JS stack.
-- The desktop app emailed OTP codes via SMTP; this static version displays
-  the OTP directly in the dialog with a clear "demo mode" label, since a
-  front-end-only app cannot send real email.
 - All validation rules (NIC format, 10-digit contact numbers, unique bus
   numbers/usernames, date logic, etc.) match the original Java validation.
 

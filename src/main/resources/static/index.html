@@ -13,7 +13,7 @@
     <div class="auth-visual">
       <div class="auth-visual__overlay">
         <div class="brand-mark brand-mark--lg">
-          <img src="assets/gun.jpg" alt="Logo" class="logo"
+          <img src="PASTE_LOGO_IMAGE_URL_HERE" alt="Logo" class="logo"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <span class="logo-fallback" style="font-size:30px;">🚌</span>
         </div>
@@ -62,6 +62,8 @@
   <script src="js/db.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="js/emailConfig.js"></script>
   <script>
     if (Session.isLoggedIn()) location.href = "dashboard.html";
 
@@ -100,17 +102,27 @@
       let pendingEmail = "";
       let pendingUserId = null;
       let pendingCode = "";
+      let pendingOtp = "";
+      let deliveredByEmail = false;
 
       function bodyForStage() {
         if (stage === "email") {
           return `
-            <p class="muted">Enter the email address linked to your account. We'll generate a one-time code.</p>
+            <p class="muted">Enter the email address linked to your account. We'll send a one-time code to it.</p>
             <div class="form-field"><label>Email</label><input type="email" id="fpEmail" placeholder="you@example.com" /></div>`;
         }
         if (stage === "otp") {
+          if (deliveredByEmail) {
+            return `
+              <div class="otp-banner otp-banner--sent">
+                <strong>✓ Code sent!</strong> We emailed a 6-digit verification code to <strong>${Fmt.escapeHtml(pendingEmail)}</strong>.
+                <span class="muted">Check your inbox (and spam folder). Valid for 10 minutes.</span>
+              </div>
+              <div class="form-field"><label>Enter the 6-digit code</label><input type="text" id="fpOtp" maxlength="6" placeholder="000000" /></div>`;
+          }
           return `
             <div class="otp-banner">
-              <strong>Demo mode:</strong> since this is a client-only app with no mail server, your OTP is shown here instead of being emailed.
+              <strong>Demo mode:</strong> email delivery isn't configured yet (see js/emailConfig.js), so your OTP is shown here instead.
               <div class="otp-code">${pendingOtp}</div>
               <span class="muted">Valid for 10 minutes.</span>
             </div>
@@ -120,8 +132,6 @@
           <div class="form-field"><label>New Password</label><input type="password" id="fpNewPw" placeholder="At least 6 characters" /></div>
           <div class="form-field"><label>Confirm Password</label><input type="password" id="fpConfirmPw" placeholder="Re-enter password" /></div>`;
       }
-
-      let pendingOtp = "";
 
       const modal = openModal({
         title: "Reset Password",
@@ -137,16 +147,36 @@
         }
       });
 
-      function handleNext(overlay, refresh) {
+      async function handleNext(overlay, refresh) {
+        const nextBtn = qs("#fpNext", overlay);
+
         if (stage === "email") {
           const email = qs("#fpEmail", overlay).value.trim();
           if (!Validate.isEmail(email)) { Toast.warning("Please enter a valid email address."); return; }
           const res = Auth.requestOtp(email);
           if (!res.ok) { Toast.error("No account found with that email address."); return; }
+
           pendingEmail = email;
           pendingOtp = res.otp;
           pendingUserId = res.user.userId;
-          Toast.success("A verification code has been generated.");
+
+          nextBtn.disabled = true;
+          const originalLabel = nextBtn.textContent;
+          nextBtn.textContent = "Sending...";
+
+          const result = await sendOtpEmail(pendingEmail, res.user.name, pendingOtp);
+          deliveredByEmail = result.sent;
+
+          nextBtn.disabled = false;
+          nextBtn.textContent = originalLabel;
+
+          if (deliveredByEmail) {
+            Toast.success(`Verification code emailed to ${pendingEmail}.`);
+          } else if (result.reason === "not_configured") {
+            Toast.warning("Email delivery isn't set up yet — showing the code here instead.");
+          } else {
+            Toast.error("Couldn't send the email right now — showing the code here instead.");
+          }
           stage = "otp";
           refresh();
         } else if (stage === "otp") {

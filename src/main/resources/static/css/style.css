@@ -445,6 +445,8 @@ input[readonly], input:disabled, select:disabled { background: var(--gray-bg); c
 .modal__footer { display: flex; justify-content: flex-end; gap: 10px; padding: 17px 24px; border-top: 1px solid var(--border-soft); }
 
 .otp-banner { background: linear-gradient(155deg, var(--amber-bg), #fff6e8); border: 1px dashed var(--amber); border-radius: var(--radius-sm); padding: 15px; margin-bottom: 18px; font-size: 13px; color: #6b4a10; box-shadow: var(--shadow-xs); }
+.otp-banner--sent { background: linear-gradient(155deg, var(--green-bg), #eafcf3); border: 1px dashed var(--green); color: #0f6b45; }
+.otp-banner--sent .muted { color: #3f8a6c; display: block; margin-top: 6px; }
 .otp-code { font-family: 'Sora', monospace; font-size: 27px; font-weight: 700; letter-spacing: .13em; color: var(--primary-900); margin: 9px 0 4px; }
 
 /* ---------------------------- Auth (login) page ---------------------------- */
