@@ -55,7 +55,8 @@ function renderBusPage(container) {
       const usedByEvent = DB.readAll("events").some(e => e.busId === id);
       if (usedByTrip || usedByEvent) return { blocked: true, reason: "Cannot delete this bus — it has linked trips or event bookings." };
       return { blocked: false };
-    }
+    },
+    onPrint(row) { PrintReceipt.busReceipt(row); }
   });
 }
 

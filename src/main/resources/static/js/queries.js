@@ -271,6 +271,25 @@ const Q = (() => {
     return Object.values(map).sort((a, b) => b.trips - a.trips).slice(0, limit);
   }
 
+  // Ranked by AVERAGE income per trip (total income from their trips / trip count),
+  // not by trip count — the conductor who brings in the most per trip on average tops the list.
+  function topConductors(fromDate, toDate, limit = 5) {
+    const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
+    const tripIds = new Set(trips.map(t => t.tripId));
+    const tripIncomeById = {}; trips.forEach(t => tripIncomeById[t.tripId] = Number(t.totalIncome) || 0);
+    const assignments = DB.readAll("tripEmployees").filter(te => tripIds.has(te.tripId) && te.roleInTrip === "CONDUCTOR");
+    const map = {};
+    assignments.forEach(te => {
+      if (!map[te.empId]) map[te.empId] = { empId: te.empId, name: empName(te.empId), trips: 0, income: 0 };
+      map[te.empId].trips += 1;
+      map[te.empId].income += tripIncomeById[te.tripId] || 0;
+    });
+    return Object.values(map)
+      .map(c => ({ ...c, avgIncome: c.trips > 0 ? c.income / c.trips : 0 }))
+      .sort((a, b) => b.avgIncome - a.avgIncome)
+      .slice(0, limit);
+  }
+
   /* ---- Month-over-month comparison ---- */
   function momComparison() {
     const now = new Date();
@@ -321,7 +340,7 @@ const Q = (() => {
     dailyProfitByRange, summaryStats, allDailyProfit, monthlyProfit,
     dashboardSummary, last30DaysChart, reportSummary,
     incomeReport, expenseReport, salaryReport, tripReport,
-    serviceReminders, fleetAlerts, topRoutes, topDrivers, momComparison,
+    serviceReminders, fleetAlerts, topRoutes, topDrivers, topConductors, momComparison,
     expenseBreakdown, customerBookingsCount
   };
 })();

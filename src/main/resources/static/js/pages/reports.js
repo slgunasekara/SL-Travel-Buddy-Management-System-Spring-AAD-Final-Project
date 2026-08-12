@@ -127,13 +127,19 @@ function renderReportsPage(container) {
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
-          <div class="table-toolbar"><h3>Income Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-toolbar"><h3>Income Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Trip ID</th><th>Bus</th><th>Date</th><th>Income</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${r.busNumber}</td><td>${Fmt.date(r.tripDate)}</td><td>${Fmt.money(r.totalIncome)}</td></tr>`).join("") : `<tr><td colspan="4"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
       qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Bus", "Date", "Income"], rows.map(r => [r.tripId, r.busNumber, r.tripDate, r.totalIncome]), `income_report_${fromDate}_${toDate}.csv`));
+      qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+        docTitle: "Income Report", heading: "Income Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
+        columns: ["Trip ID", "Bus", "Date", "Income"],
+        rows: rows.map(r => [`#${r.tripId}`, r.busNumber, Fmt.date(r.tripDate), Fmt.money(r.totalIncome)]),
+        totalLabel: "Total Income", totalValue: Fmt.money(rows.reduce((a, r) => a + r.totalIncome, 0))
+      }));
       return;
     }
 
@@ -142,13 +148,19 @@ function renderReportsPage(container) {
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
-          <div class="table-toolbar"><h3>Expense Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-toolbar"><h3>Expense Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.date(r.expenseDate)}</td><td><span class="badge badge--gray">${r.category}</span></td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No expenses in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
       qs("#exp")?.addEventListener("click", () => exportTable(["Date", "Category", "Amount"], rows.map(r => [r.expenseDate, r.category, r.amount]), `expense_report_${fromDate}_${toDate}.csv`));
+      qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+        docTitle: "Expense Report", heading: "Expense Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
+        columns: ["Date", "Category", "Amount"],
+        rows: rows.map(r => [Fmt.date(r.expenseDate), r.category, Fmt.money(r.amount)]),
+        totalLabel: "Total Expenses", totalValue: Fmt.money(rows.reduce((a, r) => a + r.amount, 0))
+      }));
       return;
     }
 
@@ -157,13 +169,19 @@ function renderReportsPage(container) {
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
-          <div class="table-toolbar"><h3>Salary Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-toolbar"><h3>Salary Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Employee</th><th>Date</th><th>Amount</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.escapeHtml(r.employeeName)}</td><td>${Fmt.date(r.salaryDate)}</td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No salary payments in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
       qs("#exp")?.addEventListener("click", () => exportTable(["Employee", "Date", "Amount"], rows.map(r => [r.employeeName, r.salaryDate, r.amount]), `salary_report_${fromDate}_${toDate}.csv`));
+      qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+        docTitle: "Salary Report", heading: "Salary Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
+        columns: ["Employee", "Date", "Amount"],
+        rows: rows.map(r => [r.employeeName, Fmt.date(r.salaryDate), Fmt.money(r.amount)]),
+        totalLabel: "Total Salary", totalValue: Fmt.money(rows.reduce((a, r) => a + r.amount, 0))
+      }));
       return;
     }
 
@@ -172,13 +190,18 @@ function renderReportsPage(container) {
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
-          <div class="table-toolbar"><h3>Trip Report</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-toolbar"><h3>Trip Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Trip ID</th><th>Date</th><th>Bus</th><th>Route</th><th>Category</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${Fmt.date(r.tripDate)}</td><td>${r.busNumber}</td><td>${Fmt.escapeHtml(r.route)}</td><td><span class="badge badge--blue">${r.category}</span></td></tr>`).join("") : `<tr><td colspan="5"><div class="table-empty">No trips in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
       qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Date", "Bus", "Route", "Category"], rows.map(r => [r.tripId, r.tripDate, r.busNumber, r.route, r.category]), `trip_report_${fromDate}_${toDate}.csv`));
+      qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+        docTitle: "Trip Report", heading: "Trip Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
+        columns: ["Trip ID", "Date", "Bus", "Route", "Category"],
+        rows: rows.map(r => [`#${r.tripId}`, Fmt.date(r.tripDate), r.busNumber, r.route, r.category])
+      }));
       return;
     }
 
@@ -187,7 +210,7 @@ function renderReportsPage(container) {
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
-          <div class="table-toolbar"><h3>Daily Profit Breakdown</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+          <div class="table-toolbar"><h3>Daily Profit Breakdown</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Date</th><th>Trips</th><th>Income</th><th>Trip Exp.</th><th>Salaries</th><th>Maintenance</th><th>Parts</th><th>Services</th><th>Total Exp.</th><th>Net Profit</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `
@@ -203,6 +226,12 @@ function renderReportsPage(container) {
         ["Date", "Trips", "Income", "Trip Exp", "Salaries", "Maintenance", "Parts", "Services", "Total Exp", "Net Profit"],
         rows.map(r => [r.date, r.totalTrips, r.totalIncome, r.tripExpenses, r.salaries, r.maintenance, r.partPurchases, r.otherServices, r.totalExpenses, r.netProfit]),
         `daily_profit_${fromDate}_${toDate}.csv`));
+      qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+        docTitle: "Daily Profit Breakdown", heading: "Daily Profit Breakdown", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
+        columns: ["Date", "Trips", "Income", "Trip Exp", "Salaries", "Maintenance", "Parts", "Services", "Total Exp", "Net Profit"],
+        rows: rows.map(r => [Fmt.date(r.date), r.totalTrips, Fmt.money(r.totalIncome), Fmt.money(r.tripExpenses), Fmt.money(r.salaries), Fmt.money(r.maintenance), Fmt.money(r.partPurchases), Fmt.money(r.otherServices), Fmt.money(r.totalExpenses), Fmt.money(r.netProfit)]),
+        totalLabel: "Total Net Profit", totalValue: Fmt.money(rows.reduce((a, r) => a + r.netProfit, 0))
+      }));
       return;
     }
 
@@ -220,7 +249,7 @@ function renderReportsPage(container) {
         const rows = Q.monthlyProfit(y);
         qs("#monthlyHost").innerHTML = `
           <div class="card">
-            <div class="table-toolbar"><h3>Monthly Profit — ${y}</h3><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div>
+            <div class="table-toolbar"><h3>Monthly Profit — ${y}</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
             <div class="table-wrap"><table class="data-table">
               <thead><tr><th>Month</th><th>Trips</th><th>Income</th><th>Total Exp.</th><th>Net Profit</th></tr></thead>
               <tbody>${rows.length ? rows.map(r => `
@@ -233,6 +262,12 @@ function renderReportsPage(container) {
           ["Month", "Trips", "Income", "Total Expenses", "Net Profit"],
           rows.map(r => [Fmt.monthLabel(r.month), r.totalTrips, r.totalIncome, r.totalExpenses, r.netProfit]),
           `monthly_profit_${y}.csv`));
+        qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
+          docTitle: `Monthly Profit ${y}`, heading: `Monthly Profit — ${y}`, subheading: null,
+          columns: ["Month", "Trips", "Income", "Total Exp.", "Net Profit"],
+          rows: rows.map(r => [Fmt.monthLabel(r.month), r.totalTrips, Fmt.money(r.totalIncome), Fmt.money(r.totalExpenses), Fmt.money(r.netProfit)]),
+          totalLabel: "Total Net Profit", totalValue: Fmt.money(rows.reduce((a, r) => a + r.netProfit, 0))
+        }));
       };
       qs("#yearSelect").addEventListener("change", renderMonthly);
       renderMonthly();
@@ -242,6 +277,7 @@ function renderReportsPage(container) {
     if (activeTab === "leaderboard") {
       const routes = Q.topRoutes(fromDate, toDate, 5);
       const drivers = Q.topDrivers(fromDate, toDate, 5);
+      const conductors = Q.topConductors(fromDate, toDate, 5);
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="grid-2">
@@ -272,6 +308,20 @@ function renderReportsPage(container) {
                   <div class="leaderboard-value">${d.trips} trip${d.trips === 1 ? "" : "s"}</div>
                 </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No driver assignments in this range.</div>`}
             </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card__head"><h3>🏆 Top Conductors by Average Income per Trip</h3></div>
+          <div class="leaderboard-list">
+            ${conductors.length ? conductors.map((c, i) => `
+              <div class="leaderboard-item">
+                <div class="leaderboard-rank">${i + 1}</div>
+                <div class="leaderboard-main">
+                  <div class="leaderboard-title">${Fmt.escapeHtml(c.name)}</div>
+                  <div class="leaderboard-sub">${c.trips} trip${c.trips === 1 ? "" : "s"} · ${Fmt.money(c.income)} total</div>
+                </div>
+                <div class="leaderboard-value">${Fmt.money(c.avgIncome)} <span class="muted" style="font-weight:400; font-size:11px;">/ trip</span></div>
+              </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No conductor assignments in this range.</div>`}
           </div>
         </div>`;
       return;

@@ -132,7 +132,7 @@ function openModal({ title, bodyHtml, footerHtml, onMount = null, size = "" }) {
     setTimeout(() => overlay.remove(), 180);
   }
   overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
-  overlay.querySelector('[data-act="x"]').addEventListener("click", close);
+  overlay.querySelectorAll('[data-act="x"]').forEach(el => el.addEventListener("click", close));
   if (onMount) onMount(overlay, close);
   return { overlay, close };
 }

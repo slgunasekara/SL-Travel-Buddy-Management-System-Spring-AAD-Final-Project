@@ -31,8 +31,10 @@ function renderMaintenancePage(container) {
     emptyText: "No maintenance records yet.",
     beforeSave(data) {
       if (!Validate.isNonNegativeNumber(data.cost)) return { error: "Cost must be a valid non-negative amount." };
+      data.busId = Number(data.busId);
       return null;
     },
-    onCreate(row) { row.createdBy = Session.currentUser().userId; }
+    onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    onPrint(row) { PrintReceipt.maintenanceReceipt(row, Q.busNumber(row.busId)); }
   });
 }

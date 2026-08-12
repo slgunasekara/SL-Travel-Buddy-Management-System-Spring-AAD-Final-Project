@@ -122,32 +122,39 @@ localStorage.clear(); location.reload();
   customer manually as before.
 - **Tools page simplified** — the plain calculator card was removed
   since the topbar's quick-access calculator already covers it; the
-  fuel/profit/time calculators and route finder remain.
+  fuel/profit/time calculators and route finder remain. (A "Distance
+  Checker" via Google Maps was tried and then removed again — Route
+  Finder covers that need well enough on its own.)
 - **Dashboard income breakdown** — an animated donut chart shows how
   total income splits into expenses vs. net profit, alongside the
   existing 30-day trend chart, alerts, and month-over-month comparison.
-- **Distance Checker (Tools page)** — enter two locations and get the
-  driving distance in km without leaving the page (via Google Maps),
-  which also auto-fills the Fuel Cost Calculator's distance field right
-  next to it. See "Distance Checker setup" below — until configured, it
-  gracefully falls back to opening Google Maps directions in a new tab,
-  same as Route Finder.
-
-## Distance Checker setup (optional)
-Like the OTP email feature, real distance lookups need a small one-time
-setup since a plain HTML/JS site can't call paid APIs without a key:
-1. Go to https://console.cloud.google.com/, create/select a project.
-2. APIs & Services → Library → enable **Maps JavaScript API** and
-   **Distance Matrix API**.
-3. APIs & Services → Credentials → Create Credentials → API key.
-4. Restrict the key (Application restrictions → Websites) to your
-   domain, or `localhost` while testing.
-5. Paste the key into `js/mapsConfig.js` → `GOOGLE_MAPS_API_KEY`.
-
-Google requires billing to be enabled for this API, though typical
-fleet-management usage is very cheap and usually covered by Google's
-free monthly credit. Until you set a key, Distance Checker automatically
-opens Google Maps in a new tab instead — it never breaks.
+- **Crew roles updated** — Assign Crew (on Manage Trip) now offers
+  Driver / Conductor / Helper / Cleaner (Assistant was replaced with
+  Cleaner), searched by typing a name instead of a long dropdown, in a
+  larger, easier-to-use modal. A bug where the modal's footer "Close"
+  button silently did nothing (it was accidentally sharing behavior with
+  the header × button) is fixed.
+- **Trip Expenses now includes crew pay** — once you pick a trip that has
+  crew assigned (via Manage Trip), a salary field appears for each crew
+  member so you can pay them for that trip in the very same save as the
+  fuel/parking/other costs.
+- **Employee Salary refocused on Managers** — Driver/Conductor/Helper/
+  Cleaner pay is now entered from Trip Expenses (see above), since it's
+  trip-specific. Employee Salary's search now only suggests Managers for
+  *new* entries; existing salary records for any category can still be
+  viewed, edited, and deleted here exactly as before.
+- **Top Conductors leaderboard** — Reports → Leaderboard now also ranks
+  conductors by *average income per trip* (not trip count), alongside
+  the existing Top Routes and Top Drivers lists.
+- **Print Receipt everywhere** — the 🖨 print button (already on Trips
+  and Event Bookings) is now also on Manage Bus, Employee, Employee
+  Salary, Trip Expenses, Maintenance, Part Purchases, Other Services,
+  and Update Prices, plus a "Print" option on every Reports tab (prints
+  the currently filtered table).
+- **Bug fix:** bus selections on Maintenance, Part Purchases, and Event
+  Bookings were being saved as text instead of a number, which could
+  make the linked bus fail to show up correctly (e.g. as "-") in tables
+  and receipts. Fixed.
 
 ## Sending real OTP emails (optional but recommended)
 By default, "Forgot password" generates and validates a real OTP exactly

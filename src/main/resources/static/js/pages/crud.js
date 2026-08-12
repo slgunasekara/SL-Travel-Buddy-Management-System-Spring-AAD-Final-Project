@@ -137,6 +137,7 @@ function renderCrudPage(container, cfg) {
 
     function clearHiddenIfNoLongerValid() {
       if (!strict) return;
+      if (editingId) return; // trust the pre-filled edit value; the suggestion source may be intentionally narrower than "all valid values"
       const items = f.source();
       const match = items.find(it => it.label === input.value);
       hidden.value = match ? match.value : "";

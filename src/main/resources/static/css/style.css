@@ -634,6 +634,7 @@ input[readonly], input:disabled, select:disabled { background: var(--gray-bg); c
 }
 .modal-overlay.show .modal { transform: translateY(0) scale(1); }
 .modal--sm { max-width: 420px; }
+.modal--lg { max-width: 720px; }
 .modal__header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border-soft); }
 .modal__header h3 { font-size: 16px; color: var(--primary-900); }
 .modal__x { background: none; border: none; font-size: 20px; color: var(--text-faint); cursor: pointer; line-height: 1; transition: color .2s ease, transform .2s ease; }

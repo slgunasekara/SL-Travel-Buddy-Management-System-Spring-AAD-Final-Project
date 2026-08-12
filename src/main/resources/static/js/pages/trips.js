@@ -209,13 +209,25 @@ function renderTripsPage(container) {
   function openCrewModal(tripId) {
     const trip = DB.readAll("trips").find(t => t.tripId === tripId);
     const employees = DB.readAll("employees").filter(e => e.empStatus === "ACTIVE");
+
+    function empSuggestions(term) {
+      const t = term.trim().toLowerCase();
+      if (!t) return [];
+      return employees.filter(e => e.empName.toLowerCase().includes(t)).slice(0, 8);
+    }
+
     openModal({
       title: `Assign Crew — Trip #${tripId} (${trip.startLocation} → ${trip.endLocation})`,
+      size: "modal--lg",
       bodyHtml: `
         <div class="form-grid">
           <div class="form-field">
             <label>Employee</label>
-            <select id="crewEmp">${employees.map(e => `<option value="${e.empId}">${Fmt.escapeHtml(e.empName)} (${e.empCategory})</option>`).join("")}</select>
+            <div class="autocomplete-wrap">
+              <input type="text" id="crewEmpDisplay" placeholder="Type an employee's name to search..." autocomplete="off" />
+              <input type="hidden" id="crewEmp" value="" />
+              <div class="autocomplete-list" id="crewEmpList"></div>
+            </div>
           </div>
           <div class="form-field">
             <label>Role in Trip</label>
@@ -223,17 +235,52 @@ function renderTripsPage(container) {
               <option value="DRIVER">DRIVER</option>
               <option value="CONDUCTOR">CONDUCTOR</option>
               <option value="HELPER">HELPER</option>
-              <option value="ASSISTANT">ASSISTANT</option>
+              <option value="CLEANER">CLEANER</option>
             </select>
           </div>
         </div>
         <div class="form-actions"><button class="btn btn--primary btn--sm" id="btnAssign">+ Assign</button></div>
-        <table class="data-table data-table--compact" style="margin-top:12px">
-          <thead><tr><th>Employee</th><th>Role</th><th></th></tr></thead>
-          <tbody id="crewTbody"></tbody>
-        </table>`,
+        <div class="table-wrap">
+          <table class="data-table data-table--compact" style="margin-top:12px">
+            <thead><tr><th>Employee</th><th>Role</th><th></th></tr></thead>
+            <tbody id="crewTbody"></tbody>
+          </table>
+        </div>`,
       footerHtml: `<button class="btn btn--ghost" data-act="x">Close</button>`,
       onMount(overlay) {
+        const empDisplay = qs("#crewEmpDisplay", overlay);
+        const empHidden = qs("#crewEmp", overlay);
+        const empList = qs("#crewEmpList", overlay);
+
+        function renderEmpSuggestions() {
+          const matches = empSuggestions(empDisplay.value);
+          if (!empDisplay.value.trim()) { empList.classList.remove("show"); empList.innerHTML = ""; empHidden.value = ""; return; }
+          empList.innerHTML = matches.length === 0
+            ? `<div class="autocomplete-empty">No matching employee found.</div>`
+            : matches.map((e, i) => `
+              <div class="autocomplete-item" data-idx="${i}">
+                <div class="autocomplete-item__title">${Fmt.escapeHtml(e.empName)}</div>
+                <div class="autocomplete-item__sub">${e.empCategory} · ${e.contactNo}</div>
+              </div>`).join("");
+          qsa(".autocomplete-item", empList).forEach(el => {
+            el.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              const picked = matches[Number(el.dataset.idx)];
+              empDisplay.value = picked.empName;
+              empHidden.value = picked.empId;
+              empList.classList.remove("show");
+            });
+          });
+          empList.classList.add("show");
+        }
+        function clearHiddenIfInvalid() {
+          const match = employees.find(e => e.empName === empDisplay.value);
+          empHidden.value = match ? match.empId : "";
+        }
+        empDisplay.addEventListener("input", debounce(renderEmpSuggestions, 100));
+        empDisplay.addEventListener("focus", renderEmpSuggestions);
+        empDisplay.addEventListener("blur", () => setTimeout(() => { empList.classList.remove("show"); clearHiddenIfInvalid(); }, 120));
+
         function refreshCrewTable() {
           const list = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
           const tbody = qs("#crewTbody", overlay);
@@ -259,15 +306,16 @@ function renderTripsPage(container) {
         }
 
         qs("#btnAssign", overlay).addEventListener("click", () => {
-          const empId = Number(qs("#crewEmp", overlay).value);
+          const empId = Number(empHidden.value);
           const role = qs("#crewRole", overlay).value;
-          if (!empId) { Toast.warning("Please select an employee."); return; }
+          if (!empId) { Toast.warning("Please type a name and pick an employee from the suggestions."); return; }
           const existing = DB.readAll("tripEmployees");
           const dup = existing.some(te => te.tripId === tripId && te.empId === empId && te.roleInTrip === role);
           if (dup) { Toast.warning("This employee is already assigned to that role on this trip."); return; }
           existing.push({ tripEmpId: DB.nextId("tripEmployees"), tripId, empId, roleInTrip: role, assignedDate: DB.nowISO(), createdBy: Session.currentUser().userId });
           DB.writeAll("tripEmployees", existing);
           Toast.success("Crew member assigned!");
+          empDisplay.value = ""; empHidden.value = "";
           refreshCrewTable();
           renderTable();
         });

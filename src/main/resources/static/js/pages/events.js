@@ -62,6 +62,7 @@ function renderEventsPage(container) {
       if (!Validate.isPositiveNumber(data.eventValue)) return { error: "Booking value must be a positive number." };
       if (!Validate.isContact(data.customerContact)) return { error: "Customer contact must be exactly 10 digits!" };
       if (!Validate.isNic(data.customerNic)) return { error: "Invalid customer NIC format!" };
+      data.busId = Number(data.busId);
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; row.createdAt = DB.nowISO(); row.updatedAt = DB.nowISO(); },

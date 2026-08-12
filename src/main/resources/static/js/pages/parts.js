@@ -44,10 +44,12 @@ function renderPartsPage(container) {
       if (!Validate.isPositiveNumber(data.quantity)) return { error: "Quantity must be a positive number." };
       if (!Validate.isNonNegativeNumber(data.unitPrice)) return { error: "Unit price must be valid." };
       data.totalCost = Number(data.quantity) * Number(data.unitPrice);
+      data.busId = Number(data.busId);
       data.maintId = data.maintId === "" ? null : Number(data.maintId);
       return null;
     },
-    onCreate(row) { row.createdBy = Session.currentUser().userId; }
+    onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    onPrint(row) { PrintReceipt.partPurchaseReceipt(row, Q.busNumber(row.busId)); }
   });
 
   recalcTotal();

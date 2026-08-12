@@ -63,7 +63,8 @@ function renderEmployeePage(container) {
       const hasTrip = DB.readAll("tripEmployees").some(t => t.empId === id);
       if (hasSalary || hasTrip) return { blocked: true, reason: "Cannot delete this employee — salary records or trip assignments reference them." };
       return { blocked: false };
-    }
+    },
+    onPrint(row) { PrintReceipt.employeeReceipt(row); }
   });
 }
 

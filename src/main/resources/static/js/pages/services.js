@@ -34,6 +34,7 @@ function renderServicesPage(container) {
       data.tripId = data.tripId === "" ? null : Number(data.tripId);
       return null;
     },
-    onCreate(row) { row.createdBy = Session.currentUser().userId; }
+    onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    onPrint(row) { PrintReceipt.otherServiceReceipt(row, row.busId ? Q.busNumber(row.busId) : null); }
   });
 }

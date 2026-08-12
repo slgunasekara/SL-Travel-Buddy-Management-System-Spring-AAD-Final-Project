@@ -73,6 +73,7 @@ function renderPricesPage(container) {
       data.percentageChange = data.previousValue === 0 ? 0 : (data.changeAmount / data.previousValue) * 100;
       return null;
     },
-    onCreate(row) { row.createdBy = Session.currentUser().userId; }
+    onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    onPrint(row) { PrintReceipt.priceUpdateReceipt(row); }
   });
 }
