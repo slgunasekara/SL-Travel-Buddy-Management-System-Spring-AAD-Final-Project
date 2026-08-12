@@ -2,6 +2,31 @@
 function renderEventsPage(container) {
   const busOptions = () => DB.readAll("buses").map(b => ({ value: b.busId, label: `${b.busId} — ${b.busNumber} (${b.busType})` }));
 
+  function customerSuggestions() {
+    const map = {};
+    // Prefer records from the dedicated Customers page...
+    DB.readAll("customers").forEach(c => {
+      if (!c.name) return;
+      map[c.name.trim().toLowerCase()] = { label: c.name, sub: c.contact || "", raw: c };
+    });
+    // ...and also offer anyone booked before but not yet added as a Customer record.
+    DB.readAll("events").forEach(e => {
+      const key = (e.customerName || "").trim().toLowerCase();
+      if (key && !map[key]) {
+        map[key] = { label: e.customerName, sub: e.customerContact || "", raw: { name: e.customerName, contact: e.customerContact, nic: e.customerNic, address: e.customerAddress } };
+      }
+    });
+    return Object.values(map);
+  }
+
+  function fillCustomerFields(raw) {
+    const set = (name, v) => { const el = qs("#f_" + name, container); if (el) el.value = v || ""; };
+    set("customerContact", raw.contact);
+    set("customerNic", raw.nic);
+    set("customerAddress", raw.address);
+    Toast.info(`Filled in details for ${raw.name}. Double-check before saving.`);
+  }
+
   renderCrudPage(container, {
     title: "Event Bookings",
     subtitle: "Private hires — weddings, tours, corporate charters and more.",
@@ -14,7 +39,7 @@ function renderEventsPage(container) {
       { name: "endLocation", label: "End Location", required: true },
       { name: "eventValue", label: "Booking Value (Rs.)", type: "number", step: "0.01", required: true },
       { name: "eventDate", label: "Event Date", type: "date", required: true },
-      { name: "customerName", label: "Customer Name", required: true },
+      { name: "customerName", label: "Customer Name", required: true, type: "autocomplete", placeholder: "Start typing to search existing customers...", source: customerSuggestions, onPick: fillCustomerFields },
       { name: "customerContact", label: "Customer Contact", required: true, placeholder: "10-digit number" },
       { name: "customerNic", label: "Customer NIC", required: true },
       { name: "customerAddress", label: "Customer Address", required: true, wide: true },

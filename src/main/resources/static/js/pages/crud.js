@@ -29,6 +29,12 @@ function fieldHtml(f, value) {
   if (f.type === "checkbox") {
     return `<label class="checkbox-line"><input type="checkbox" id="f_${f.name}" ${val ? "checked" : ""}/> <span>${f.checkLabel || ""}</span></label>`;
   }
+  if (f.type === "autocomplete") {
+    return `<div class="autocomplete-wrap">
+      <input type="text" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} autocomplete="off" />
+      <div class="autocomplete-list" id="ac_${f.name}"></div>
+    </div>`;
+  }
   return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""}/>`;
 }
 
@@ -109,7 +115,42 @@ function renderCrudPage(container, cfg) {
       const el = qs("#f_" + f.name, container);
       el.addEventListener("change", () => f.onChange(readAllFields()));
     }
+    if (f.type === "autocomplete") wireAutocomplete(f);
   });
+
+  function wireAutocomplete(f) {
+    const input = qs("#f_" + f.name, container);
+    const list = qs("#ac_" + f.name, container);
+
+    function renderSuggestions() {
+      const term = input.value.trim().toLowerCase();
+      if (!term) { list.classList.remove("show"); list.innerHTML = ""; return; }
+      const items = f.source().filter(it => it.label.toLowerCase().includes(term)).slice(0, 8);
+      if (items.length === 0) {
+        list.innerHTML = `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
+      } else {
+        list.innerHTML = items.map((it, i) => `
+          <div class="autocomplete-item" data-idx="${i}">
+            <div class="autocomplete-item__title">${Fmt.escapeHtml(it.label)}</div>
+            ${it.sub ? `<div class="autocomplete-item__sub">${Fmt.escapeHtml(it.sub)}</div>` : ""}
+          </div>`).join("");
+        qsa(".autocomplete-item", list).forEach(el => {
+          el.addEventListener("mousedown", (e) => {
+            e.preventDefault(); // keep focus/blur from firing before click registers
+            const picked = items[Number(el.dataset.idx)];
+            input.value = picked.label;
+            list.classList.remove("show");
+            if (f.onPick) f.onPick(picked.raw, container);
+          });
+        });
+      }
+      list.classList.add("show");
+    }
+
+    input.addEventListener("input", debounce(renderSuggestions, 120));
+    input.addEventListener("focus", renderSuggestions);
+    input.addEventListener("blur", () => setTimeout(() => list.classList.remove("show"), 120));
+  }
 
   function readAllFields() {
     const data = {};
