@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SL Travel Buddy — Login</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" type="image/png" href="assets/SLTravelBuddy.png">
+<script>(function(){try{document.documentElement.setAttribute('data-theme', localStorage.getItem('bms_theme')||'light');}catch(e){}})();</script>
+</head>
+<body class="auth-body">
+
+  <div class="auth-shell">
+    <div class="auth-visual">
+      <div class="auth-visual__overlay">
+        <div class="brand-mark brand-mark--lg">
+          <img src="assets/SLTravelBuddy.png" alt="SL Travel Buddy Logo" class="logo"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <span class="logo-fallback" style="font-size:30px;">🚌</span>
+        </div>
+        <h1>SL Travel Buddy</h1>
+        <p>Fleet Management System</p>
+        <ul class="auth-visual__list">
+          <li>Fleet, trip &amp; crew management</li>
+          <li>Revenue, expense &amp; profit tracking</li>
+          <li>Maintenance &amp; parts inventory</li>
+          <li>Reports built for decision-making</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-card" id="loginCard">
+        <h2>Welcome back</h2>
+        <p class="muted">Sign in to manage your bus fleet.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="form-field">
+            <label for="username">Username</label>
+            <input type="text" id="username" autocomplete="username" required placeholder="e.g. amg" />
+          </div>
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••" />
+              <button type="button" class="password-toggle" id="togglePw" aria-label="Show password">👁</button>
+            </div>
+          </div>
+          <div id="loginError" class="form-error" hidden></div>
+          <button type="submit" class="btn btn--primary btn--block" id="btnLogin">Sign In</button>
+          <button type="button" class="link-btn" id="linkForgot">Forgot password?</button>
+        </form>
+
+        <div class="demo-box">
+          <strong>Demo accounts</strong>
+          <div><code>amg</code> / <code>amg123</code> — Owner</div>
+          <div><code>sampath</code> / <code>sampath123</code> — Manager</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="js/emailConfig.js"></script>
+  <script>
+    if (Session.isLoggedIn()) location.href = "dashboard.html";
+
+    const form = qs("#loginForm");
+    const errBox = qs("#loginError");
+
+    qs("#togglePw").addEventListener("click", () => {
+      const pw = qs("#password");
+      pw.type = pw.type === "password" ? "text" : "password";
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errBox.hidden = true;
+      const username = qs("#username").value.trim();
+      const password = qs("#password").value;
+      if (!username || !password) {
+        errBox.textContent = "Please enter both username and password.";
+        errBox.hidden = false;
+        return;
+      }
+      const btn = qs("#btnLogin");
+      btn.disabled = true;
+      const result = await Auth.authenticate(username, password);
+      btn.disabled = false;
+      if (!result.ok) {
+        errBox.textContent = result.message;
+        errBox.hidden = false;
+        return;
+      }
+      Session.set(result.user, result.token);
+      Toast.success(`Welcome, ${result.user.name}!`);
+      setTimeout(() => location.href = "dashboard.html", 400);
+    });
+
+    /* ---------------- Forgot password / OTP flow ---------------- */
+    qs("#linkForgot").addEventListener("click", () => {
+      let stage = "email";
+      let pendingEmail = "";
+      let pendingUserId = null;
+      let pendingCode = "";
+      let pendingOtp = "";
+      let deliveredByEmail = false;
+
+      function bodyForStage() {
+        if (stage === "email") {
+          return `
+            <p class="muted">Enter the email address linked to your account. We'll send a one-time code to it.</p>
+            <div class="form-field"><label>Email</label><input type="email" id="fpEmail" placeholder="you@example.com" /></div>`;
+        }
+        if (stage === "otp") {
+          if (deliveredByEmail) {
+            return `
+              <div class="otp-banner otp-banner--sent">
+                <strong>✓ Code sent!</strong> We emailed a 6-digit verification code to <strong>${Fmt.escapeHtml(pendingEmail)}</strong>.
+                <span class="muted">Check your inbox (and spam folder). Valid for 10 minutes.</span>
+              </div>
+              <div class="form-field"><label>Enter the 6-digit code</label><input type="text" id="fpOtp" maxlength="6" placeholder="000000" /></div>`;
+          }
+          return `
+            <div class="otp-banner">
+              <strong>Demo mode:</strong> email delivery isn't configured yet (see js/emailConfig.js), so your OTP is shown here instead.
+              <div class="otp-code">${pendingOtp}</div>
+              <span class="muted">Valid for 10 minutes.</span>
+            </div>
+            <div class="form-field"><label>Enter the 6-digit code</label><input type="text" id="fpOtp" maxlength="6" placeholder="000000" /></div>`;
+        }
+        return `
+          <div class="form-field"><label>New Password</label><input type="password" id="fpNewPw" placeholder="At least 6 characters" /></div>
+          <div class="form-field"><label>Confirm Password</label><input type="password" id="fpConfirmPw" placeholder="Re-enter password" /></div>`;
+      }
+
+      const modal = openModal({
+        title: "Reset Password",
+        bodyHtml: `<div id="fpBody">${bodyForStage()}</div>`,
+        footerHtml: `<button class="btn btn--ghost" data-act="x">Cancel</button><button class="btn btn--primary" id="fpNext">Send Code</button>`,
+        onMount(overlay) {
+          function refresh() {
+            qs("#fpBody", overlay).innerHTML = bodyForStage();
+            qs("#fpNext", overlay).textContent = stage === "email" ? "Send Code" : stage === "otp" ? "Verify Code" : "Reset Password";
+          }
+          qs("#fpNext", overlay).addEventListener("click", () => handleNext(overlay, refresh));
+          refresh();
+        }
+      });
+
+      async function handleNext(overlay, refresh) {
+        const nextBtn = qs("#fpNext", overlay);
+
+        if (stage === "email") {
+          const email = qs("#fpEmail", overlay).value.trim();
+          if (!Validate.isEmail(email)) { Toast.warning("Please enter a valid email address."); return; }
+          const res = await Auth.requestOtp(email);
+          if (!res.ok) { Toast.error("No account found with that email address."); return; }
+
+          pendingEmail = email;
+          pendingOtp = res.otp;
+          pendingUserId = res.user.userId;
+
+          nextBtn.disabled = true;
+          const originalLabel = nextBtn.textContent;
+          nextBtn.textContent = "Sending...";
+
+          const result = await sendOtpEmail(pendingEmail, res.user.name, pendingOtp);
+          deliveredByEmail = result.sent;
+
+          nextBtn.disabled = false;
+          nextBtn.textContent = originalLabel;
+
+          if (deliveredByEmail) {
+            Toast.success(`Verification code emailed to ${pendingEmail}.`);
+          } else if (result.reason === "not_configured") {
+            Toast.warning("Email delivery isn't set up yet — showing the code here instead.");
+          } else {
+            Toast.error("Couldn't send the email right now — showing the code here instead.");
+          }
+          stage = "otp";
+          refresh();
+        } else if (stage === "otp") {
+          const code = qs("#fpOtp", overlay).value.trim();
+          const uid = await Auth.verifyOtp(pendingEmail, code);
+          if (!uid) { Toast.error("Invalid or expired code. Please try again."); return; }
+          pendingUserId = uid;
+          pendingCode = code;
+          Toast.success("Code verified!");
+          stage = "reset";
+          refresh();
+        } else {
+          const pw1 = qs("#fpNewPw", overlay).value;
+          const pw2 = qs("#fpConfirmPw", overlay).value;
+          if (pw1.length < 6) { Toast.warning("Password must be at least 6 characters."); return; }
+          if (pw1 !== pw2) { Toast.warning("Passwords do not match."); return; }
+          const ok = await Auth.resetPassword(pendingUserId, pw1, pendingEmail, pendingCode);
+          if (!ok) { Toast.error("Could not reset your password. Please try again."); return; }
+          Toast.success("Password reset successfully! Please sign in.");
+          modal.close();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
