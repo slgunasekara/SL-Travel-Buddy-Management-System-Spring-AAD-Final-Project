@@ -8,9 +8,9 @@
 function renderSalaryPage(container) {
   function empSuggestions() {
     return DB.readAll("employees")
-      .filter(e => e.empCategory === "MANAGER")
+      .filter(e => e.empCategory === "MANAGER" || e.empSecondaryCategory === "MANAGER")
       .map(e => ({
-        label: `${e.empName} (${e.empCategory})`,
+        label: `${e.empName} (${e.empCategory}${e.empSecondaryCategory ? ` + ${e.empSecondaryCategory}` : ""})`,
         sub: e.contactNo,
         value: e.empId,
         raw: e

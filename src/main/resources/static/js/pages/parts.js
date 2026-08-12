@@ -1,7 +1,21 @@
 /* pages/parts.js — Manage Part Purchase (mirrors ManagePartPurchaseController) */
 function renderPartsPage(container) {
   const busOptions = () => DB.readAll("buses").map(b => ({ value: b.busId, label: `${b.busId} — ${b.busNumber}` }));
-  const maintOptions = () => DB.readAll("maintenance").map(m => ({ value: m.maintId, label: `#${m.maintId} — ${(m.maintenanceType || "").replace(/_/g, " ")} (${Fmt.date(m.serviceDate)})` }));
+  const maintLabel = m => `#${m.maintId} — ${(m.maintenanceType || "").replace(/_/g, " ")} (${Fmt.date(m.serviceDate)})`;
+
+  // "Linked Maintenance" must only ever offer jobs for the bus actually
+  // selected above it — otherwise a part bought for one bus could get
+  // linked to a maintenance job that belongs to a completely different
+  // bus. The <select> options are rebuilt every time the Bus changes.
+  function refreshMaintOptions(busId, selectedMaintId) {
+    const sel = qs("#f_maintId");
+    if (!sel) return;
+    const keepVal = selectedMaintId !== undefined ? String(selectedMaintId ?? "") : sel.value;
+    const list = busId ? DB.readAll("maintenance").filter(m => m.busId === Number(busId)) : [];
+    const opts = list.map(m => `<option value="${m.maintId}" ${String(m.maintId) === keepVal ? "selected" : ""}>${Fmt.escapeHtml(maintLabel(m))}</option>`).join("");
+    sel.innerHTML = `<option value="">${busId ? "None" : "Select a bus first"}</option>${opts}`;
+    sel.value = list.some(m => String(m.maintId) === keepVal) ? keepVal : "";
+  }
 
   function recalcTotal() {
     const qty = Number(qs("#f_quantity")?.value || 0);
@@ -17,8 +31,8 @@ function renderPartsPage(container) {
     idField: "purchaseId",
     singular: "Part purchase",
     fields: [
-      { name: "busId", label: "Bus", type: "select", required: true, options: busOptions() },
-      { name: "maintId", label: "Linked Maintenance (optional)", type: "select", options: maintOptions() },
+      { name: "busId", label: "Bus", type: "select", required: true, options: busOptions(), onChange: (data) => refreshMaintOptions(data.busId) },
+      { name: "maintId", label: "Linked Maintenance (optional)", type: "select", options: [] },
       { name: "partName", label: "Part Name", required: true, placeholder: "e.g. Brake Pads" },
       { name: "quantity", label: "Quantity", type: "number", required: true, onChange: recalcTotal },
       { name: "unitPrice", label: "Unit Price (Rs.)", type: "number", step: "0.01", required: true, onChange: recalcTotal },
@@ -46,9 +60,15 @@ function renderPartsPage(container) {
       data.totalCost = Number(data.quantity) * Number(data.unitPrice);
       data.busId = Number(data.busId);
       data.maintId = data.maintId === "" ? null : Number(data.maintId);
+      if (data.maintId) {
+        const m = DB.readAll("maintenance").find(mm => mm.maintId === data.maintId);
+        if (!m || m.busId !== data.busId) return { error: "The linked maintenance record must belong to the same bus." };
+      }
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    onSelectRow(row) { refreshMaintOptions(row.busId, row.maintId); },
+    onClearForm() { refreshMaintOptions(null); },
     onPrint(row) { PrintReceipt.partPurchaseReceipt(row, Q.busNumber(row.busId)); }
   });
 

@@ -221,10 +221,17 @@ function renderTripsPage(container) {
       { key: "cleaner", label: "Cleaner", role: "CLEANER", existing: currentCrew.find(te => te.roleInTrip === "CLEANER") || null }
     ];
 
-    function empSuggestions(term) {
+    function empSuggestions(term, role) {
       const t = term.trim().toLowerCase();
       if (!t) return [];
-      return employees.filter(e => e.empName.toLowerCase().includes(t)).slice(0, 8);
+      // An employee can cover two roles (e.g. Driver + Conductor) — anyone
+      // whose primary OR secondary role matches this slot is treated as a
+      // full match and prioritized; others still show up further down.
+      const matchesRole = e => e.empCategory === role || e.empSecondaryCategory === role;
+      return employees
+        .filter(e => e.empName.toLowerCase().includes(t))
+        .sort((a, b) => (matchesRole(a) ? 0 : 1) - (matchesRole(b) ? 0 : 1))
+        .slice(0, 8);
     }
 
     openModal({
@@ -250,14 +257,14 @@ function renderTripsPage(container) {
           const list = qs(`#slot_${s.key}_list`, overlay);
 
           function renderSuggestions() {
-            const matches = empSuggestions(input.value);
+            const matches = empSuggestions(input.value, s.role);
             if (!input.value.trim()) { list.classList.remove("show"); list.innerHTML = ""; hidden.value = ""; return; }
             list.innerHTML = matches.length === 0
               ? `<div class="autocomplete-empty">No matching employee found.</div>`
               : matches.map((e, i) => `
                 <div class="autocomplete-item" data-idx="${i}">
                   <div class="autocomplete-item__title">${Fmt.escapeHtml(e.empName)}</div>
-                  <div class="autocomplete-item__sub">${e.empCategory} · ${e.contactNo}</div>
+                  <div class="autocomplete-item__sub">${e.empCategory}${e.empSecondaryCategory ? ` + ${e.empSecondaryCategory}` : ""}${(e.empCategory !== s.role && e.empSecondaryCategory !== s.role) ? ` <span class="muted">(not usually ${s.role.toLowerCase()})</span>` : ""} · ${e.contactNo}</div>
                 </div>`).join("");
             qsa(".autocomplete-item", list).forEach(el => {
               el.addEventListener("mousedown", (e) => {

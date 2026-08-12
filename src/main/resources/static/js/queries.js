@@ -41,9 +41,10 @@ const Q = (() => {
       b.tripIds.add(t.tripId);
     });
 
-    // Event Bookings (private hires/charters) carry their own income —
-    // previously never added to any total anywhere in the app.
-    const events = DB.readAll("events").filter(e => e.eventDate >= fromDate && e.eventDate <= toDate);
+    // Event Bookings (private hires/charters) only count toward income once
+    // marked "Completed" — a booking that hasn't actually run yet (or was
+    // cancelled) shouldn't inflate income/profit just for existing.
+    const events = DB.readAll("events").filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate);
     events.forEach(e => { bucket(e.eventDate).totalIncome += Number(e.eventValue) || 0; });
 
     // trip expenses attach to the date of their trip (LEFT JOIN on trip_id)
@@ -174,8 +175,10 @@ const Q = (() => {
     const tripRows = DB.readAll("trips")
       .filter(t => t.tripDate >= fromDate && t.tripDate <= toDate)
       .map(t => ({ tripId: `#${t.tripId}`, source: "TRIP", busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }));
+    // Only Completed event bookings count as income — a pending/not-yet-run
+    // booking hasn't earned anything yet.
     const eventRows = DB.readAll("events")
-      .filter(e => e.eventDate >= fromDate && e.eventDate <= toDate)
+      .filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate)
       .map(e => ({ tripId: `EVT-${e.eventId}`, source: "EVENT", busNumber: busNumber(e.busId), tripDate: e.eventDate, totalIncome: e.eventValue }));
     return [...tripRows, ...eventRows].sort((a, b) => b.tripDate.localeCompare(a.tripDate));
   }
@@ -277,7 +280,7 @@ const Q = (() => {
   /* ---- Top routes / top drivers leaderboards ---- */
   function topRoutes(fromDate, toDate, limit = 5) {
     const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
-    const events = DB.readAll("events").filter(e => e.eventDate >= fromDate && e.eventDate <= toDate);
+    const events = DB.readAll("events").filter(e => e.eventCompleted && e.eventDate >= fromDate && e.eventDate <= toDate);
     const map = {};
     trips.forEach(t => {
       const key = `${t.startLocation} → ${t.endLocation}`;

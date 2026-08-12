@@ -44,7 +44,7 @@ function renderEventsPage(container) {
       { name: "customerNic", label: "Customer NIC", required: true },
       { name: "customerAddress", label: "Customer Address", required: true, wide: true },
       { name: "description", label: "Description", type: "textarea", wide: true },
-      { name: "eventCompleted", label: "Completed", type: "checkbox", checkLabel: "Mark this event as completed" }
+      { name: "eventCompleted", label: "Completed", type: "checkbox", checkLabel: "Mark this event as completed (its income is only added to reports/profit once ticked)" }
     ],
     columns: [
       { key: "eventId", label: "ID" },
