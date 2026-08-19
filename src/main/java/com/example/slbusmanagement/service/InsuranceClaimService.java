@@ -5,6 +5,7 @@ import com.example.slbusmanagement.dto.InsuranceClaimDTO;
 import java.util.List;
 
 public interface InsuranceClaimService {
+
     List<InsuranceClaimDTO> getAll();
     InsuranceClaimDTO add(InsuranceClaimDTO dto);
     InsuranceClaimDTO update(Long id, InsuranceClaimDTO dto);
