@@ -49,7 +49,24 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public TripDTO update(Long id, TripDTO dto) {
-        return null;
+        log.info("Update Trip Method Executed....");
+        Trip entity = tripRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Trip not found with ID: " + id));
+
+        entity.setTripCategory(dto.getTripCategory());
+        entity.setBusId(dto.getBusId());
+        entity.setStartLocation(dto.getStartLocation());
+        entity.setEndLocation(dto.getEndLocation());
+        entity.setDistance(dto.getDistance());
+        entity.setTotalIncome(dto.getTotalIncome());
+        entity.setTripDate(dto.getTripDate());
+        entity.setDescription(dto.getDescription());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        tripRepository.save(entity);
+        log.info("Trip Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
