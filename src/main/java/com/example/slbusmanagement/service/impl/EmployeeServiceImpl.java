@@ -36,7 +36,25 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeDTO add(EmployeeDTO dto) {
-        return null;
+        log.info("Save Employee Method Executed....");
+        Employee entity = new Employee();
+        BeanUtils.copyProperties(dto, entity);
+        entity.setStatus(RecordStatus.ACTIVE);
+        employeeRepository.save(entity);
+
+        if (dto.getBaseSalaryRate() != null) {
+            recordRateChange(entity.getEmpId(), dto.getBaseSalaryRate());
+        }
+        log.info("Employee Saved Successfully....");
+        return toDto(entity);
+    }
+
+    private void recordRateChange(Long empId, Double rate) {
+        SalaryRateHistory h = new SalaryRateHistory();
+        h.setEmpId(empId);
+        h.setRate(rate);
+        h.setEffectiveDate(java.time.LocalDate.now().toString());
+        salaryRateHistoryRepository.save(h);
     }
 
     @Override
