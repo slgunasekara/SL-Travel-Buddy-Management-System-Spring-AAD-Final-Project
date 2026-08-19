@@ -3,6 +3,7 @@ package com.example.slbusmanagement.service.impl;
 import com.example.slbusmanagement.dto.EmployeeSalaryDTO;
 import com.example.slbusmanagement.entity.EmployeeSalary;
 import com.example.slbusmanagement.enumiration.RecordStatus;
+import com.example.slbusmanagement.exception.CustomeException;
 import com.example.slbusmanagement.repository.EmployeeSalaryRepository;
 import com.example.slbusmanagement.service.EmployeeSalaryService;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,22 @@ public class EmployeeSalaryServiceImpl implements EmployeeSalaryService {
 
     @Override
     public EmployeeSalaryDTO update(Long id, EmployeeSalaryDTO dto) {
-        return null;
+        log.info("Update EmployeeSalary Method Executed....");
+        EmployeeSalary entity = employeeSalaryRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "EmployeeSalary not found with ID: " + id));
+
+        entity.setEmpId(dto.getEmpId());
+        entity.setTripId(dto.getTripId());
+        entity.setAmount(dto.getAmount());
+        entity.setDate(dto.getDate());
+        entity.setDescription(dto.getDescription());
+        entity.setFromTripExpense(dto.getFromTripExpense());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        employeeSalaryRepository.save(entity);
+        log.info("EmployeeSalary Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
