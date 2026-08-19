@@ -23,3 +23,4 @@ public class BusController {
         BusDTO saved = busService.add(dto);
         return new CommonResponse(0, saved, "Bus added successfully");
     }
+}
