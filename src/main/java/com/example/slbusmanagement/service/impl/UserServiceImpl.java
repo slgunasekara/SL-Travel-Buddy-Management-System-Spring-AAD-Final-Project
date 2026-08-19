@@ -67,7 +67,30 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO update(Long id, UserDTO dto) {
-        return null;
+        log.info("Update User Method Executed....");
+
+        User u = userRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "User not found with ID: " + id));
+
+        boolean dup = userRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .anyMatch(x -> !x.getUserId().equals(id) && x.getUsername().equalsIgnoreCase(dto.getUsername()));
+        if (dup) throw new CustomeException(400, "Username already exists!");
+
+        u.setUsername(dto.getUsername());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            u.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        u.setName(dto.getName());
+        u.setRole(UserRole.valueOf(dto.getRole()));
+        u.setContact(dto.getContact());
+        u.setNic(dto.getNic());
+        u.setEmail(dto.getEmail());
+
+        userRepository.save(u);
+        log.info("User Updated Successfully....");
+        return toDto(u);
     }
 
     @Override
