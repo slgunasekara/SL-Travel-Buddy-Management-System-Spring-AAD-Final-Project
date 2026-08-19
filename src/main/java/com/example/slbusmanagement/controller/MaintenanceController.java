@@ -30,4 +30,10 @@ public class MaintenanceController {
         return new CommonResponse(0, saved, "Maintenance added successfully");
     }
 
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody MaintenanceDTO dto) {
+        MaintenanceDTO updated = maintenanceService.update(id, dto);
+        return new CommonResponse(0, updated, "Maintenance updated successfully");
+    }
+
 }

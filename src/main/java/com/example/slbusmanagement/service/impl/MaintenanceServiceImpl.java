@@ -49,7 +49,24 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     @Override
     public MaintenanceDTO update(Long id, MaintenanceDTO dto) {
-        return null;
+        log.info("Update Maintenance Method Executed....");
+        Maintenance entity = maintenanceRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Maintenance not found with ID: " + id));
+
+        entity.setBusId(dto.getBusId());
+        entity.setMaintenanceType(dto.getMaintenanceType());
+        entity.setServiceDate(dto.getServiceDate());
+        entity.setMileage(dto.getMileage());
+        entity.setCost(dto.getCost());
+        entity.setTechnician(dto.getTechnician());
+        entity.setDescription(dto.getDescription());
+        entity.setReceiptPhotoUrl(dto.getReceiptPhotoUrl());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        maintenanceRepository.save(entity);
+        log.info("Maintenance Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
