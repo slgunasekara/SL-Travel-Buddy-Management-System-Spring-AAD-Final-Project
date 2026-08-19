@@ -28,4 +28,10 @@ public class AccidentController {
         AccidentDTO saved = accidentService.add(dto);
         return new CommonResponse(0, saved, "Accident added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody AccidentDTO dto) {
+        AccidentDTO updated = accidentService.update(id, dto);
+        return new CommonResponse(0, updated, "Accident updated successfully");
+    }
 }
