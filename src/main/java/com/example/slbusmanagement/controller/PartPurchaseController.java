@@ -36,4 +36,10 @@ public class PartPurchaseController {
         return new CommonResponse(0, updated, "PartPurchase updated successfully");
     }
 
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        partPurchaseService.delete(id);
+        return new CommonResponse(0, "Success", "PartPurchase deleted successfully");
+    }
+
 }

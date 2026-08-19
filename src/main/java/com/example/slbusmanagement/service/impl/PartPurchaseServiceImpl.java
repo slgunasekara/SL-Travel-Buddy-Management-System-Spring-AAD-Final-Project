@@ -74,7 +74,15 @@ public class PartPurchaseServiceImpl implements PartPurchaseService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete PartPurchase Method Executed....");
+        PartPurchase entity = partPurchaseRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "PartPurchase not found with ID: " + id));
 
+
+        entity.setStatus(RecordStatus.INACTIVE);
+        partPurchaseRepository.save(entity);
+        log.info("PartPurchase Deleted (soft) Successfully....");
     }
 
 }
