@@ -17,6 +17,12 @@ public class EmployeeSalaryController {
 
     private final EmployeeSalaryService employeeSalaryService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<EmployeeSalaryDTO> items = employeeSalaryService.getAll();
+        return new CommonResponse(0, items, "Get all EmployeeSalary");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody EmployeeSalaryDTO dto) {
         EmployeeSalaryDTO saved = employeeSalaryService.add(dto);
