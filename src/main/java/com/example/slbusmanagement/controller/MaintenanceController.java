@@ -17,6 +17,13 @@ public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<MaintenanceDTO> items = maintenanceService.getAll();
+        return new CommonResponse(0, items, "Get all Maintenance");
+    }
+
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody MaintenanceDTO dto) {
         MaintenanceDTO saved = maintenanceService.add(dto);

@@ -29,7 +29,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     @Override
     public List<MaintenanceDTO> getAll() {
-        return List.of();
+        log.info("Get All Maintenance Method Executed....");
+
+        return maintenanceRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
