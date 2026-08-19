@@ -17,5 +17,11 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
     private final ObjectMapper objectMapper;
 
-
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) throws java.io.IOException {
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        CommonResponse body = new CommonResponse(401, "Authentication required. Please log in again.");
+        response.getWriter().write(objectMapper.writeValueAsString(body));
+    }
 }
