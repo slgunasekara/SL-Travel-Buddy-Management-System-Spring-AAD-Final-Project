@@ -50,7 +50,20 @@ public class TripEmployeeServiceImpl implements TripEmployeeService {
 
     @Override
     public TripEmployeeDTO update(Long id, TripEmployeeDTO dto) {
-        return null;
+        log.info("Update TripEmployee Method Executed....");
+        TripEmployee entity = tripEmployeeRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "TripEmployee not found with ID: " + id));
+
+        entity.setTripId(dto.getTripId());
+        entity.setEmpId(dto.getEmpId());
+        entity.setRoleInTrip(dto.getRoleInTrip());
+        entity.setAssignedDate(dto.getAssignedDate());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        tripEmployeeRepository.save(entity);
+        log.info("TripEmployee Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
