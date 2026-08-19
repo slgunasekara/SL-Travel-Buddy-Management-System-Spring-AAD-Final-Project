@@ -29,7 +29,11 @@ public class UpdatePriceServiceImpl implements UpdatePriceService {
 
     @Override
     public List<UpdatePriceDTO> getAll() {
-        return List.of();
+        log.info("Get All UpdatePrice Method Executed....");
+
+        return updatePriceRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
