@@ -78,6 +78,13 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Event Method Executed....");
+        Event entity = eventRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Event not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        eventRepository.save(entity);
+        log.info("Event Deleted (soft) Successfully....");
     }
 }
