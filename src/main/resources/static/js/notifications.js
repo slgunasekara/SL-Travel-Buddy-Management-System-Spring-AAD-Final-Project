@@ -85,3 +85,44 @@ const Notifications = (() => {
 
   return { toggle, close, updateBadge };
 })();
+
+/* ---- Login notifications — poll for other users signing in (Owner &
+   Manager only, matches what the backend already filters to). Shows a
+   toast the moment it sees a login event it hasn't shown before; the
+   fleet-alerts bell above is unaffected and keeps working as it always did. */
+const LoginWatch = (() => {
+  let timer = null;
+  const seen = new Set();
+  let firstPoll = true;
+
+  function poll() {
+    const user = Session.currentUser();
+    if (!user || (user.role !== "Owner" && user.role !== "Manager")) return;
+
+    LoginEventApi.recent().then(res => {
+      const events = res.body || [];
+      events.forEach(ev => {
+        if (seen.has(ev.loginEventId)) return;
+        seen.add(ev.loginEventId);
+        // Don't toast for logins that happened before this tab started watching.
+        if (!firstPoll) {
+          Toast.info(`${ev.name} (${ev.role}) just signed in.`);
+        }
+      });
+      firstPoll = false;
+    }).catch(() => { /* quiet — this is a best-effort convenience feature */ });
+  }
+
+  function start() {
+    if (timer) return;
+    poll();
+    timer = setInterval(poll, 15000);
+  }
+
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
+  return { start, stop };
+})();

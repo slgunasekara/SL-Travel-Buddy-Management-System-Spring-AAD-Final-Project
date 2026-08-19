@@ -15,7 +15,8 @@ function renderMaintenancePage(container) {
       { name: "mileage", label: "Mileage at Service (km)", type: "number" },
       { name: "cost", label: "Cost (Rs.)", type: "number", step: "0.01", required: true },
       { name: "technician", label: "Maintained By", placeholder: "Technician / garage name" },
-      { name: "description", label: "Description", type: "textarea", wide: true }
+      { name: "description", label: "Description", type: "textarea", wide: true },
+      { name: "receiptPhotoUrl", label: "Receipt Photo (optional)", type: "photo" }
     ],
     columns: [
       { key: "maintId", label: "ID" },
@@ -24,7 +25,8 @@ function renderMaintenancePage(container) {
       { key: "serviceDate", label: "Date", render: r => Fmt.date(r.serviceDate) },
       { key: "mileage", label: "Mileage", render: r => r.mileage ? `${Number(r.mileage).toLocaleString()} km` : "-" },
       { key: "cost", label: "Cost", render: r => Fmt.money(r.cost) },
-      { key: "technician", label: "Maintained By" }
+      { key: "technician", label: "Maintained By" },
+      { key: "receiptPhotoUrl", label: "Receipt", render: r => r.receiptPhotoUrl ? `<a href="${Fmt.escapeHtml(r.receiptPhotoUrl)}" target="_blank" rel="noopener">📎 View</a>` : "-" }
     ],
     searchKeys: [r => Q.busNumber(r.busId), "maintenanceType", "technician", "description"],
     defaultSort: (a, b) => b.maintId - a.maintId,
@@ -32,9 +34,15 @@ function renderMaintenancePage(container) {
     beforeSave(data) {
       if (!Validate.isNonNegativeNumber(data.cost)) return { error: "Cost must be a valid non-negative amount." };
       data.busId = Number(data.busId);
+      data.mileage = data.mileage === "" ? null : data.mileage;
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; },
+    canDelete(id) {
+      const hasParts = DB.readAll("partPurchases").some(p => p.maintId === id);
+      if (hasParts) return { blocked: true, reason: "Cannot delete this maintenance record — one or more part purchases are linked to it." };
+      return { blocked: false };
+    },
     onPrint(row) { PrintReceipt.maintenanceReceipt(row, Q.busNumber(row.busId)); }
   });
 }

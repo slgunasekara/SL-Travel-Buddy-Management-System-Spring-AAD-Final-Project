@@ -13,7 +13,7 @@ function renderUsersPage(container) {
     singular: "User",
     fields: [
       { name: "username", label: "Username", required: true },
-      { name: "password", label: "Password", type: "password", required: true },
+      { name: "password", label: "Password", type: "password", placeholder: "Leave blank to keep the current password" },
       { name: "name", label: "Full Name", required: true },
       { name: "role", label: "Role", type: "select", required: true, options: ["Owner", "Manager", "Admin"] },
       { name: "contact", label: "Contact No.", placeholder: "10-digit number" },
@@ -32,10 +32,17 @@ function renderUsersPage(container) {
     searchKeys: ["username", "name", "role", "email"],
     defaultSort: (a, b) => a.userId - b.userId,
     emptyText: "No users found.",
+    onCreate(row) { row.createdAt = DB.nowISO(); },
     beforeSave(data, isEdit, id) {
       const users = DB.readAll("users");
       if (users.some(u => u.username.toLowerCase() === data.username.toLowerCase() && (!isEdit || u.userId !== id))) {
         return { error: "Username already exists!" };
+      }
+      if (!isEdit && (!data.password || data.password.length < 1)) {
+        return { error: "Password is required when creating a new user." };
+      }
+      if (data.password && data.password.length > 0 && data.password.length < 6) {
+        return { error: "Password must be at least 6 characters." };
       }
       if (!Validate.isEmail(data.email)) return { error: "Please enter a valid email address." };
       if (data.contact && !Validate.isContact(data.contact)) return { error: "Contact number must be exactly 10 digits!" };

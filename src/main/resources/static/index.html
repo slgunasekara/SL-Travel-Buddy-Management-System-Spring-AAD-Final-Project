@@ -60,6 +60,7 @@
     </div>
   </div>
 
+  <script src="js/api.js"></script>
   <script src="js/db.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>
@@ -71,12 +72,17 @@
     const form = qs("#loginForm");
     const errBox = qs("#loginError");
 
+    if (new URLSearchParams(location.search).get("reason") === "idle") {
+      errBox.textContent = "You were logged out after a period of inactivity. Please sign in again.";
+      errBox.hidden = false;
+    }
+
     qs("#togglePw").addEventListener("click", () => {
       const pw = qs("#password");
       pw.type = pw.type === "password" ? "text" : "password";
     });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       errBox.hidden = true;
       const username = qs("#username").value.trim();
@@ -86,16 +92,59 @@
         errBox.hidden = false;
         return;
       }
-      const user = Auth.authenticate(username, password);
-      if (!user) {
-        errBox.textContent = "Invalid username or password.";
+      const btn = qs("#btnLogin");
+      btn.disabled = true;
+      const result = await Auth.authenticate(username, password);
+      btn.disabled = false;
+      if (!result.ok) {
+        errBox.textContent = result.message;
         errBox.hidden = false;
         return;
       }
-      Session.set(user);
-      Toast.success(`Welcome, ${user.name}!`);
+      if (result.otpRequired) {
+        showTwoFactorModal(result.username);
+        return;
+      }
+      Session.set(result.user, result.token);
+      Toast.success(`Welcome, ${result.user.name}!`);
       setTimeout(() => location.href = "dashboard.html", 400);
     });
+
+    function showTwoFactorModal(username) {
+      const modal = openModal({
+        title: "Two-Factor Verification",
+        bodyHtml: `
+          <div class="otp-banner otp-banner--sent">
+            <strong>✓ Code sent!</strong> We emailed a 6-digit verification code to your account's address.
+            <span class="muted">Check your inbox (and spam folder). Valid for 10 minutes.</span>
+          </div>
+          <div class="form-field"><label>Enter the 6-digit code</label><input type="text" id="tfaCode" maxlength="6" placeholder="000000" /></div>
+          <div id="tfaError" class="form-error" hidden></div>`,
+        footerHtml: `<button class="btn btn--ghost" data-act="x">Cancel</button><button class="btn btn--primary" id="tfaVerify">Verify</button>`,
+        onMount(overlay) {
+          qs("#tfaCode", overlay).focus();
+          qs("#tfaVerify", overlay).addEventListener("click", async () => {
+            const code = qs("#tfaCode", overlay).value.trim();
+            const errEl = qs("#tfaError", overlay);
+            errEl.hidden = true;
+            if (!code) { errEl.textContent = "Enter the code."; errEl.hidden = false; return; }
+            const btn2 = qs("#tfaVerify", overlay);
+            btn2.disabled = true;
+            const result = await Auth.verifyTwoFactor(username, code);
+            btn2.disabled = false;
+            if (!result.ok) {
+              errEl.textContent = result.message;
+              errEl.hidden = false;
+              return;
+            }
+            Session.set(result.user, result.token);
+            Toast.success(`Welcome, ${result.user.name}!`);
+            modal.close();
+            setTimeout(() => location.href = "dashboard.html", 400);
+          });
+        }
+      });
+    }
 
     /* ---------------- Forgot password / OTP flow ---------------- */
     qs("#linkForgot").addEventListener("click", () => {
@@ -154,7 +203,7 @@
         if (stage === "email") {
           const email = qs("#fpEmail", overlay).value.trim();
           if (!Validate.isEmail(email)) { Toast.warning("Please enter a valid email address."); return; }
-          const res = Auth.requestOtp(email);
+          const res = await Auth.requestOtp(email);
           if (!res.ok) { Toast.error("No account found with that email address."); return; }
 
           pendingEmail = email;
@@ -182,7 +231,7 @@
           refresh();
         } else if (stage === "otp") {
           const code = qs("#fpOtp", overlay).value.trim();
-          const uid = Auth.verifyOtp(pendingEmail, code);
+          const uid = await Auth.verifyOtp(pendingEmail, code);
           if (!uid) { Toast.error("Invalid or expired code. Please try again."); return; }
           pendingUserId = uid;
           pendingCode = code;
@@ -194,8 +243,8 @@
           const pw2 = qs("#fpConfirmPw", overlay).value;
           if (pw1.length < 6) { Toast.warning("Password must be at least 6 characters."); return; }
           if (pw1 !== pw2) { Toast.warning("Passwords do not match."); return; }
-          Auth.resetPassword(pendingUserId, pw1);
-          Auth.markOtpUsed(pendingEmail, pendingCode);
+          const ok = await Auth.resetPassword(pendingUserId, pw1, pendingEmail, pendingCode);
+          if (!ok) { Toast.error("Could not reset your password. Please try again."); return; }
           Toast.success("Password reset successfully! Please sign in.");
           modal.close();
         }

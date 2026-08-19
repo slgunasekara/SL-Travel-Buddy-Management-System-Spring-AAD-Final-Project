@@ -42,7 +42,29 @@ function fieldHtml(f, value) {
       <div class="autocomplete-list" id="ac_${f.name}"></div>
     </div>`;
   }
-  return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""}/>`;
+  if (f.type === "photo") {
+    // Optional single-photo attachment (Receipt Photo / Document Photo) —
+    // reuses the same /v1/files/upload endpoint the Accident photos use.
+    // The visible control is a button + thumbnail; the actual value stored
+    // and read is the hidden input's URL string, so readFieldValue() and
+    // fillForm()'s generic `el.value = row[f.name]` branch both just work.
+    return `<div class="photo-field" id="photoField_${f.name}">
+      <input type="hidden" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" />
+      <div class="photo-field__preview" id="photoPreview_${f.name}">${val ? `<img src="${Fmt.escapeHtml(val)}" alt="" />` : `<span class="muted">No photo</span>`}</div>
+      <input type="file" accept="image/*" id="photoInput_${f.name}" style="display:none;" />
+      <button type="button" class="btn btn--secondary btn--sm" id="photoBtn_${f.name}">${val ? "Change Photo" : "Choose Photo"}</button>
+    </div>`;
+  }
+  const autocompleteAttr = f.type === "password" ? 'autocomplete="new-password"' : 'autocomplete="off"';
+  // datalistOptions: e.g. Master Routes List (SL_CITIES) — gives a native
+  // browser suggestion dropdown as the user types, so "Colombo" and
+  // "colombo" collapse to the same picked value instead of drifting into
+  // separate free-text variants that then double-count in route reports.
+  const listAttr = f.datalistOptions ? `list="dl_${f.name}"` : "";
+  const datalistHtml = f.datalistOptions
+    ? `<datalist id="dl_${f.name}">${f.datalistOptions.map(o => `<option value="${Fmt.escapeHtml(o)}"></option>`).join("")}</datalist>`
+    : "";
+  return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""} ${autocompleteAttr} ${listAttr}/>${datalistHtml}`;
 }
 
 function readFieldValue(f) {
@@ -127,7 +149,33 @@ function renderCrudPage(container, cfg) {
       el.addEventListener("change", () => f.onChange(readAllFields()));
     }
     if (f.type === "autocomplete" || f.type === "searchSelect") wireAutocomplete(f);
+    if (f.type === "photo") wirePhotoField(f);
   });
+
+  function wirePhotoField(f) {
+    const btn = qs("#photoBtn_" + f.name, container);
+    const input = qs("#photoInput_" + f.name, container);
+    const hidden = qs("#f_" + f.name, container);
+    const preview = qs("#photoPreview_" + f.name, container);
+    if (!btn || !input || !hidden || !preview) return;
+    btn.addEventListener("click", () => input.click());
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+      btn.disabled = true;
+      btn.textContent = "Uploading...";
+      try {
+        const url = await uploadFile(file);
+        hidden.value = url;
+        preview.innerHTML = `<img src="${Fmt.escapeHtml(url)}" alt="" />`;
+      } catch (err) {
+        Toast.error(apiErrorMessage(err, "Could not upload photo."));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = hidden.value ? "Change Photo" : "Choose Photo";
+      }
+    });
+  }
 
   function wireAutocomplete(f) {
     const strict = f.type === "searchSelect";
@@ -153,7 +201,9 @@ function renderCrudPage(container, cfg) {
       const items = f.source().filter(it => it.label.toLowerCase().includes(term)).slice(0, 8);
       if (items.length === 0) {
         list.innerHTML = strict
-          ? `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`
+          ? (editingId
+              ? `<div class="autocomplete-empty">Current value: "${Fmt.escapeHtml(input.value)}" — it's kept as-is unless you pick a replacement below.</div>`
+              : `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`)
           : `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
       } else {
         list.innerHTML = items.map((it, i) => `
@@ -176,7 +226,16 @@ function renderCrudPage(container, cfg) {
     }
 
     input.addEventListener("input", debounce(renderSuggestions, 120));
-    input.addEventListener("focus", renderSuggestions);
+    input.addEventListener("focus", () => {
+      // For a strict (searchSelect) field that's already linked to a valid
+      // record — i.e. we're editing an existing row — don't pop the
+      // suggestion list open just because the field was focused/clicked.
+      // The existing value is already trusted (see clearHiddenIfNoLongerValid
+      // above), so there's nothing wrong to report; only show suggestions
+      // once the person actually starts typing to change it.
+      if (strict && editingId) return;
+      renderSuggestions();
+    });
     input.addEventListener("blur", () => setTimeout(() => { list.classList.remove("show"); clearHiddenIfNoLongerValid(); }, 120));
   }
 
@@ -196,6 +255,13 @@ function renderCrudPage(container, cfg) {
         const displayEl = qs("#f_" + f.name + "_display", container);
         if (displayEl) displayEl.value = f.displayValue ? (f.displayValue(row[f.name]) || "") : "";
       }
+      else if (f.type === "photo") {
+        el.value = row[f.name] || "";
+        const preview = qs("#photoPreview_" + f.name, container);
+        const btn = qs("#photoBtn_" + f.name, container);
+        if (preview) preview.innerHTML = row[f.name] ? `<img src="${Fmt.escapeHtml(row[f.name])}" alt="" />` : `<span class="muted">No photo</span>`;
+        if (btn) btn.textContent = row[f.name] ? "Change Photo" : "Choose Photo";
+      }
       else el.value = row[f.name] === undefined || row[f.name] === null ? "" : row[f.name];
     });
   }
@@ -210,6 +276,13 @@ function renderCrudPage(container, cfg) {
         el.value = "";
         const displayEl = qs("#f_" + f.name + "_display", container);
         if (displayEl) displayEl.value = "";
+      }
+      else if (f.type === "photo") {
+        el.value = "";
+        const preview = qs("#photoPreview_" + f.name, container);
+        const btn = qs("#photoBtn_" + f.name, container);
+        if (preview) preview.innerHTML = `<span class="muted">No photo</span>`;
+        if (btn) btn.textContent = "Choose Photo";
       }
       else el.value = f.default !== undefined ? f.default : "";
     });
@@ -269,6 +342,7 @@ function renderCrudPage(container, cfg) {
           ${cfg.columns.map(c => `<td>${c.render ? c.render(row) : Fmt.escapeHtml(row[c.key] ?? "-")}</td>`).join("")}
           <td class="col-actions">
             ${cfg.onPrint ? `<button class="icon-btn icon-btn--print" data-act="print" title="Print">🖨</button>` : ""}
+            ${cfg.onTimeline ? `<button class="icon-btn" data-act="timeline" title="Timeline">🕒</button>` : ""}
             <button class="icon-btn" data-act="edit" title="Edit">✎</button>
             <button class="icon-btn icon-btn--danger" data-act="del" title="Delete">🗑</button>
           </td>
@@ -290,6 +364,11 @@ function renderCrudPage(container, cfg) {
       if (printBtn) printBtn.addEventListener("click", () => {
         const row = DB.readAll(cfg.table).find(r => r[cfg.idField] === id);
         if (row) cfg.onPrint(row);
+      });
+      const timelineBtn = tr.querySelector('[data-act="timeline"]');
+      if (timelineBtn) timelineBtn.addEventListener("click", () => {
+        const row = DB.readAll(cfg.table).find(r => r[cfg.idField] === id);
+        if (row) cfg.onTimeline(row);
       });
     });
   }
@@ -506,5 +585,21 @@ function renderCrudPage(container, cfg) {
 
   clearForm();
   renderTable();
+
+  // If Global Search sent us here to jump to a specific record, select it
+  // now — regardless of any leftover search-box filter — and give the row
+  // a brief highlight pulse so it's obvious which one matched.
+  const jumpId = (typeof GlobalSearch !== "undefined") ? GlobalSearch.consumeJumpTarget(cfg.table) : null;
+  if (jumpId !== null && jumpId !== undefined) {
+    qs("#searchBox", container).value = "";
+    renderTable();
+    selectRow(jumpId);
+    const tr = qs(`#dataTable tbody tr[data-id="${jumpId}"]`, container);
+    if (tr) {
+      tr.classList.add("jump-highlight");
+      setTimeout(() => tr.classList.remove("jump-highlight"), 2500);
+    }
+  }
+
   return { renderTable, clearForm };
 }

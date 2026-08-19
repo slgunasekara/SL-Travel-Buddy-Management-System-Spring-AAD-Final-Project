@@ -6,6 +6,22 @@
    ========================================================================= */
 
 const PrintReceipt = (() => {
+  // Company Letterhead Customization — loaded once at app boot (see
+  // app.js -> PrintReceipt.loadBrand()) and cached here; every receipt
+  // reads from this instead of a hardcoded name, falling back to the
+  // default while the fetch is still in flight.
+  let brand = { companyName: "SL Travel Buddy", address: "", phone: "", logoUrl: "" };
+  function loadBrand() {
+    return CompanySettingsApi.get().then(res => { if (res && res.body) brand = res.body; }).catch(() => { /* keep defaults */ });
+  }
+  function brandHeaderHtml() {
+    return `
+    ${brand.logoUrl ? `<img src="${Fmt.escapeHtml(brand.logoUrl)}" alt="" style="max-height:44px; margin-bottom:6px;" />` : ""}
+    <div class="pr-brand">${Fmt.escapeHtml(brand.companyName || "SL Travel Buddy")}</div>
+    ${brand.address ? `<div class="pr-subheading">${Fmt.escapeHtml(brand.address)}</div>` : ""}
+    ${brand.phone ? `<div class="pr-subheading">${Fmt.escapeHtml(brand.phone)}</div>` : ""}`;
+  }
+
   const SHARED_STYLE = `
   * { box-sizing: border-box; }
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #0d2745; margin: 0; padding: 32px; background: #fff; }
@@ -53,13 +69,13 @@ const PrintReceipt = (() => {
 </head>
 <body>
   <div class="pr-head">
-    <div class="pr-brand">SL Travel Buddy</div>
+    ${brandHeaderHtml()}
     <div class="pr-heading">${Fmt.escapeHtml(heading)}</div>
     ${subheading ? `<div class="pr-subheading">${Fmt.escapeHtml(subheading)}</div>` : ""}
   </div>
   <table>${rowsHtml}</table>
   ${totalLabel ? `<div class="pr-total"><span class="pr-total-label">${Fmt.escapeHtml(totalLabel)}</span><span class="pr-total-value">${Fmt.escapeHtml(totalValue)}</span></div>` : ""}
-  <div class="pr-footer">${footerNote ? Fmt.escapeHtml(footerNote) : "Thank you for choosing SL Travel Buddy!"}<br>Generated ${new Date().toLocaleString("en-GB")}</div>
+  <div class="pr-footer">${footerNote ? Fmt.escapeHtml(footerNote) : `Thank you for choosing ${Fmt.escapeHtml(brand.companyName || "SL Travel Buddy")}!`}<br>Generated ${new Date().toLocaleString("en-GB")}</div>
   <button class="pr-print-btn" onclick="window.print()">Print / Save as PDF</button>
 </body>
 </html>`);
@@ -91,7 +107,7 @@ const PrintReceipt = (() => {
 </head>
 <body>
   <div class="pr-head">
-    <div class="pr-brand">SL Travel Buddy</div>
+    ${brandHeaderHtml()}
     <div class="pr-heading">${Fmt.escapeHtml(heading)}</div>
     ${subheading ? `<div class="pr-subheading">${Fmt.escapeHtml(subheading)}</div>` : ""}
   </div>
@@ -157,10 +173,11 @@ const PrintReceipt = (() => {
         { label: "Seats", value: String(b.noOfSeats) },
         { label: "Status", value: b.busStatus },
         { label: "Manufacture Date", value: Fmt.date(b.manufactureDate) },
-        { label: "Insurance Expiry", value: b.insuranceExpiryDate ? Fmt.date(b.insuranceExpiryDate) : "-" },
-        { label: "License Renewal", value: b.licenseRenewalDate ? Fmt.date(b.licenseRenewalDate) : "-" },
+        { label: "Insurance Expiry", value: (() => { const i = Q.latestInsurance(b.busId); return i && i.expireDate ? Fmt.date(i.expireDate) : "-"; })() },
+        { label: "License Renewal", value: (() => { const l = Q.latestLicense(b.busId); return l && l.expireDate ? Fmt.date(l.expireDate) : "-"; })() },
         { label: "Current Mileage", value: `${Number(b.currentMileage || 0).toLocaleString()} km` },
-        { label: "Fuel Efficiency", value: b.fuelEfficiency ? `${b.fuelEfficiency} km/l` : "-" }
+        { label: "Fuel Efficiency", value: b.fuelEfficiency ? `${b.fuelEfficiency} km/l` : "-" },
+        { label: "Route Permit", value: b.routePermitNo ? `${b.routePermitNo} (${b.permitStartLocation} → ${b.permitEndLocation})` : "Charter only — no permit" }
       ]
     });
   }
@@ -172,7 +189,7 @@ const PrintReceipt = (() => {
       subheading: `Employee #${e.empId}`,
       rows: [
         { label: "Name", value: e.empName },
-        { label: "Category", value: e.empCategory },
+        { label: "Category", value: e.empCategory + (e.empCategory2 ? ` / ${e.empCategory2}` : "") },
         { label: "Contact", value: e.contactNo },
         { label: "NIC", value: e.nicNo },
         { label: "Address", value: e.address },
@@ -305,7 +322,7 @@ const PrintReceipt = (() => {
   }
 
   return {
-    open, tablePrint,
+    open, tablePrint, loadBrand,
     eventReceipt, tripReceipt, busReceipt, employeeReceipt, salaryReceipt,
     maintenanceReceipt, partPurchaseReceipt, otherServiceReceipt,
     priceUpdateReceipt, tripExpenseReceipt

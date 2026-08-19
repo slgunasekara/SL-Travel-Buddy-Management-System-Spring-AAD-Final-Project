@@ -3,6 +3,31 @@
    (replaces JavaFX Alert dialogs from the desktop app)
    ========================================================================= */
 
+/** Master Routes List — every major Sri Lankan city/town, spelled one
+ *  consistent way. Wired in as a <datalist> on Start/End Location fields
+ *  (Manage Trip, Manage Bus route permit, Events) so "Colombo" and
+ *  "colombo" collapse to the same value instead of drifting into separate
+ *  free-text variants that then double-count in Reports → Leaderboard →
+ *  Top Routes. Plain browser-native suggestion, no server round-trip. */
+const SL_CITIES = [
+  "Colombo", "Dehiwala-Mount Lavinia", "Moratuwa", "Sri Jayawardenepura Kotte", "Negombo",
+  "Kandy", "Galle", "Jaffna", "Trincomalee", "Batticaloa", "Kalmunai", "Kurunegala",
+  "Ratnapura", "Badulla", "Matara", "Anuradhapura", "Polonnaruwa", "Puttalam", "Kegalle",
+  "Nuwara Eliya", "Gampaha", "Kalutara", "Panadura", "Wattala", "Ja-Ela", "Kadawatha",
+  "Kelaniya", "Homagama", "Maharagama", "Kesbewa", "Piliyandala", "Kotikawatta",
+  "Beruwala", "Aluthgama", "Hikkaduwa", "Ambalangoda", "Weligama", "Tangalle", "Hambantota",
+  "Tissamaharama", "Embilipitiya", "Balangoda", "Avissawella", "Hatton", "Nawalapitiya",
+  "Gampola", "Katugastota", "Peradeniya", "Wattegama", "Akurana", "Matale", "Dambulla",
+  "Sigiriya", "Kalawana", "Elpitiya", "Baddegama", "Ampara", "Kalawanchikudy", "Eravur",
+  "Valachchenai", "Chavakachcheri", "Point Pedro", "Vavuniya", "Mannar", "Kilinochchi",
+  "Mullaitivu", "Chilaw", "Wennappuwa", "Marawila", "Nattandiya", "Bandarawela", "Haputale",
+  "Welimada", "Mahiyanganaya", "Monaragala", "Wellawaya", "Deniyaya", "Akuressa",
+  "Bentota", "Horana", "Ingiriya", "Bandaragama", "Wadduwa", "Minuwangoda", "Divulapitiya",
+  "Katunayake", "Seeduwa", "Ratmalana", "Kollupitiya", "Bambalapitiya", "Wellawatte",
+  "Nugegoda", "Rajagiriya", "Battaramulla", "Malabe", "Kaduwela", "Athurugiriya",
+  "Ja-Ela", "Kiribathgoda", "Ragama", "Kandana", "Wennappuwa", "Puttalam", "Anamaduwa"
+];
+
 const Fmt = {
   money(n) {
     n = Number(n) || 0;

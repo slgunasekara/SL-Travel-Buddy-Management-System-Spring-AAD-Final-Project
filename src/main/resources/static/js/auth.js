@@ -1,85 +1,79 @@
 /* =========================================================================
-   auth.js — login, session (SessionManager equivalent), forgot-password/OTP
-   Since this is a pure front-end app with no mail server, the OTP is
-   generated the same way as the desktop app (6-digit, 10 min expiry) and
-   is displayed on-screen in a "email simulation" panel instead of being
-   emailed — every other rule (expiry, single-use, format) is preserved.
+   auth.js — login, session (SessionManager equivalent), forgot-password/OTP.
+   Now backed by the Spring Boot /v1/auth/** endpoints (JWT auth) instead of
+   reading/writing the users table directly. The OTP flow keeps the exact
+   same shape it always had (a 6-digit code, 10 min expiry, single-use) —
+   it's just generated and validated server-side now. The OTP code itself
+   is still returned to the client (never emailed by the server), so the
+   existing "email simulation" panel / EmailJS flow in index.html keeps
+   working unchanged.
    ========================================================================= */
 
 const Session = (() => {
   const KEY = "bms_session";
-  function set(user) {
-    sessionStorage.setItem(KEY, JSON.stringify({ user, loginTime: Date.now() }));
+  function set(user, token) {
+    sessionStorage.setItem(KEY, JSON.stringify({ user, token, loginTime: Date.now() }));
+    setAuthToken(token);
   }
   function get() {
     const raw = sessionStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : null;
   }
-  function clear() { sessionStorage.removeItem(KEY); }
+  function clear() { sessionStorage.removeItem(KEY); clearAuthToken(); }
   function currentUser() { const s = get(); return s ? s.user : null; }
+  function token() { const s = get(); return s ? s.token : null; }
   function isLoggedIn() { return !!get(); }
   function isOwner() { const u = currentUser(); return !!u && u.role === "Owner"; }
-  return { set, get, clear, currentUser, isLoggedIn, isOwner };
+  // Restore the JWT into memory on every page load (fetch doesn't send it automatically).
+  setAuthToken(token());
+  return { set, get, clear, currentUser, token, isLoggedIn, isOwner };
 })();
 
 const Auth = (() => {
   function authenticate(username, password) {
-    const users = DB.readAll("users");
-    return users.find(u => u.username === username && u.password === password) || null;
+    return AuthApi.login(username, password).then(res => {
+      const b = res.body;
+      if (b.otpRequired) return { ok: true, otpRequired: true, userId: b.userId, username: b.username };
+      const user = {
+        userId: b.userId, username: b.username, name: b.name, role: b.role,
+        contact: b.contact, nic: b.nic, email: b.email, createdAt: b.createdAt,
+        twoFactorEnabled: b.twoFactorEnabled
+      };
+      return { ok: true, user, token: b.token };
+    }).catch(err => ({ ok: false, message: apiErrorMessage(err, "Invalid username or password.") }));
   }
 
-  function generateOTP() {
-    return String(Math.floor(100000 + Math.random() * 900000));
+  function verifyTwoFactor(username, code) {
+    return AuthApi.verifyTwoFactor(username, code).then(res => {
+      const b = res.body;
+      const user = {
+        userId: b.userId, username: b.username, name: b.name, role: b.role,
+        contact: b.contact, nic: b.nic, email: b.email, createdAt: b.createdAt,
+        twoFactorEnabled: b.twoFactorEnabled
+      };
+      return { ok: true, user, token: b.token };
+    }).catch(err => ({ ok: false, message: apiErrorMessage(err, "Invalid or expired code.") }));
   }
 
   function requestOtp(email) {
-    const users = DB.readAll("users");
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) return { ok: false, reason: "not_found" };
-
-    const otps = DB.readAll("passwordResetOtps");
-    const otp = generateOTP();
-    const now = new Date();
-    const expires = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes, same as desktop app
-    otps.push({
-      otpId: DB.nextId("passwordResetOtps"),
-      userId: user.userId,
-      otpCode: otp,
-      email: user.email,
-      createdAt: now.toISOString(),
-      expiresAt: expires.toISOString(),
-      isUsed: false
-    });
-    DB.writeAll("passwordResetOtps", otps);
-    return { ok: true, otp, user };
+    return AuthApi.requestOtp(email).then(res => {
+      const b = res.body;
+      if (!b.ok) return { ok: false, reason: "not_found" };
+      return { ok: true, otp: b.otp, user: { userId: b.userId, name: b.userName, email: b.email } };
+    }).catch(() => ({ ok: false, reason: "not_found" }));
   }
 
   function verifyOtp(email, code) {
-    const otps = DB.readAll("passwordResetOtps");
-    const now = new Date();
-    const match = [...otps].reverse().find(o =>
-      o.email.toLowerCase() === email.toLowerCase() &&
-      o.otpCode === code &&
-      !o.isUsed &&
-      new Date(o.expiresAt) > now
-    );
-    return match ? match.userId : null;
+    return AuthApi.verifyOtp(email, code).then(res => res.body.userId).catch(() => null);
   }
 
-  function markOtpUsed(email, code) {
-    const otps = DB.readAll("passwordResetOtps");
-    const idx = otps.findIndex(o => o.email.toLowerCase() === email.toLowerCase() && o.otpCode === code);
-    if (idx >= 0) { otps[idx].isUsed = true; DB.writeAll("passwordResetOtps", otps); }
+  // OTP is now marked used atomically by resetPassword() on the server —
+  // kept as a no-op here so any existing call sites keep working untouched.
+  function markOtpUsed() { return Promise.resolve(); }
+
+  function resetPassword(userId, newPassword, email, code) {
+    return AuthApi.resetPassword(userId, email, code, newPassword).then(() => true).catch(() => false);
   }
 
-  function resetPassword(userId, newPassword) {
-    const users = DB.readAll("users");
-    const idx = users.findIndex(u => u.userId === userId);
-    if (idx < 0) return false;
-    users[idx].password = newPassword;
-    DB.writeAll("users", users);
-    return true;
-  }
-
-  return { authenticate, requestOtp, verifyOtp, markOtpUsed, resetPassword };
+  return { authenticate, verifyTwoFactor, requestOtp, verifyOtp, markOtpUsed, resetPassword };
 })();

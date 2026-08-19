@@ -14,6 +14,9 @@ function renderCustomersPage(container) {
       { name: "nic", label: "NIC No.", placeholder: "Optional" },
       { name: "email", label: "Email", type: "email", placeholder: "Optional" },
       { name: "address", label: "Address", type: "textarea", wide: true },
+      { name: "clientTier", label: "Client Tier", type: "select", default: "CASUAL", options: ["CASUAL", "CORPORATE"] },
+      { name: "agreedRate", label: "Agreed Rate (Rs., corporate only)", type: "number", step: "0.01", placeholder: "Recurring/negotiated rate" },
+      { name: "billingCycle", label: "Billing Cycle (corporate only)", type: "select", options: ["MONTHLY", "QUARTERLY", "ANNUAL"] },
       { name: "notes", label: "Notes", type: "textarea", wide: true, placeholder: "Preferences, special requests, etc." }
     ],
     columns: [
@@ -22,8 +25,9 @@ function renderCustomersPage(container) {
       { key: "contact", label: "Contact" },
       { key: "nic", label: "NIC", render: r => r.nic || "-" },
       { key: "email", label: "Email", render: r => r.email || "-" },
+      { key: "clientTier", label: "Tier", render: r => r.clientTier === "CORPORATE" ? `<span class="badge badge--blue">Corporate${r.billingCycle ? " · " + r.billingCycle : ""}</span>` : `<span class="badge badge--gray">Casual</span>` },
       { key: "bookings", label: "Bookings", render: r => {
-          const n = Q.customerBookingsCount(r.nic);
+          const n = Q.customerBookingsCount(r);
           return n > 0 ? `<span class="badge badge--blue">${n} booking${n === 1 ? "" : "s"}</span>` : `<span class="badge badge--gray">No bookings yet</span>`;
         }
       }
@@ -35,6 +39,7 @@ function renderCustomersPage(container) {
       if (data.contact && !Validate.isContact(data.contact)) return { error: "Contact number must be exactly 10 digits!" };
       if (data.nic && !Validate.isNic(data.nic)) return { error: "Invalid NIC format! Use 9 digits + V, or 12 digits." };
       if (data.email && !Validate.isEmail(data.email)) return { error: "Please enter a valid email address." };
+      data.agreedRate = data.agreedRate === "" ? null : data.agreedRate;
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; row.createdAt = DB.nowISO(); }
