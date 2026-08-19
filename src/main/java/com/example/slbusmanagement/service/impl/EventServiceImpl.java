@@ -29,8 +29,13 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventDTO> getAll() {
-        return List.of();
+        log.info("Get All Event Method Executed....");
+
+        return eventRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
+
 
     @Override
     public EventDTO add(EventDTO dto) {
