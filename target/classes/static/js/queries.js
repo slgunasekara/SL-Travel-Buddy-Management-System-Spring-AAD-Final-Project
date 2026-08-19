@@ -17,7 +17,6 @@ const Q = (() => {
   /* ---- Per-day aggregation, mirrors DailyProfitModel SQL joins ---- */
   function dailyProfitByRange(fromDate, toDate) {
     const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
-    const events = DB.readAll("events").filter(e => e.eventDate && e.eventDate >= fromDate && e.eventDate <= toDate);
     const tripExpenses = DB.readAll("tripExpenses");
     const salaries = DB.readAll("employeeSalaries");
     const maint = DB.readAll("maintenance");
@@ -41,15 +40,6 @@ const Q = (() => {
       b.totalIncome += Number(t.totalIncome) || 0;
       b.tripIds.add(t.tripId);
     });
-
-    // Event bookings (private hire / charter) are NOT added to totalIncome
-    // here. A charter is already tracked as its own PRIVATE_TRIP record in
-    // the Trips module (that's where its income counts), and an Event
-    // Booking can optionally reference that same trip via linkedTripId —
-    // so adding eventValue here again would double-count the same income.
-    // (Reports → Income Report still lists event bookings on their own
-    // row so you can see booking value at a glance — it just isn't summed
-    // into totalIncome/netProfit a second time.)
 
     // trip expenses attach to the date of their trip (LEFT JOIN on trip_id)
     const tripDateMap = {};
@@ -109,14 +99,9 @@ const Q = (() => {
 
   function monthlyProfit(year) {
     const trips = DB.readAll("trips").filter(t => t.tripDate.startsWith(String(year)));
-    const events = DB.readAll("events").filter(e => e.eventDate && e.eventDate.startsWith(String(year)));
     const months = {};
     trips.forEach(t => {
       const ym = t.tripDate.slice(0, 7);
-      if (!months[ym]) months[ym] = true;
-    });
-    events.forEach(e => {
-      const ym = e.eventDate.slice(0, 7);
       if (!months[ym]) months[ym] = true;
     });
     return Object.keys(months).sort().reverse().map(ym => {
@@ -180,13 +165,10 @@ const Q = (() => {
   }
 
   function incomeReport(fromDate, toDate) {
-    const tripRows = DB.readAll("trips")
+    return DB.readAll("trips")
       .filter(t => t.tripDate >= fromDate && t.tripDate <= toDate)
-      .map(t => ({ type: "Trip", refId: t.tripId, reference: busNumber(t.busId), date: t.tripDate, income: Number(t.totalIncome) || 0, linkedTripId: null }));
-    const eventRows = DB.readAll("events")
-      .filter(e => e.eventDate && e.eventDate >= fromDate && e.eventDate <= toDate)
-      .map(e => ({ type: "Event", refId: e.eventId, reference: `${e.startLocation} → ${e.endLocation}`, date: e.eventDate, income: Number(e.eventValue) || 0, linkedTripId: e.linkedTripId || null }));
-    return [...tripRows, ...eventRows].sort((a, b) => b.date.localeCompare(a.date));
+      .map(t => ({ tripId: t.tripId, busNumber: busNumber(t.busId), tripDate: t.tripDate, totalIncome: t.totalIncome }))
+      .sort((a, b) => b.tripDate.localeCompare(a.tripDate));
   }
 
   function expenseReport(fromDate, toDate) {
@@ -196,21 +178,8 @@ const Q = (() => {
       .forEach(e => {
         if (Number(e.fuelAmount) > 0) rows.push({ expenseDate: e.date, amount: e.fuelAmount, category: "FUEL" });
         if (Number(e.parkingAmount) > 0) rows.push({ expenseDate: e.date, amount: e.parkingAmount, category: "PARKING" });
-        if (Number(e.otherAmount) > 0) rows.push({ expenseDate: e.date, amount: e.otherAmount, category: "TRIP OTHER" });
+        if (Number(e.otherAmount) > 0) rows.push({ expenseDate: e.date, amount: e.otherAmount, category: "OTHERS" });
       });
-    // Salary is deliberately NOT listed here — it has its own dedicated
-    // "Salary Report" tab, so listing it here too would just duplicate the
-    // same records across two tabs. (It's still included in the Total
-    // Expenses figure on the Overview tab, which needs the full picture.)
-    DB.readAll("maintenance")
-      .filter(m => m.serviceDate >= fromDate && m.serviceDate <= toDate)
-      .forEach(m => { if (Number(m.cost) > 0) rows.push({ expenseDate: m.serviceDate, amount: m.cost, category: "MAINTENANCE" }); });
-    DB.readAll("partPurchases")
-      .filter(p => p.date >= fromDate && p.date <= toDate)
-      .forEach(p => { if (Number(p.totalCost) > 0) rows.push({ expenseDate: p.date, amount: p.totalCost, category: "PARTS" }); });
-    DB.readAll("otherServices")
-      .filter(s => s.date >= fromDate && s.date <= toDate)
-      .forEach(s => { if (Number(s.cost) > 0) rows.push({ expenseDate: s.date, amount: s.cost, category: "OTHER SERVICES" }); });
     return rows.sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
   }
 
@@ -284,22 +253,13 @@ const Q = (() => {
 
   /* ---- Top routes / top drivers leaderboards ---- */
   function topRoutes(fromDate, toDate, limit = 5) {
+    const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
     const map = {};
-    DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate).forEach(t => {
+    trips.forEach(t => {
       const key = `${t.startLocation} → ${t.endLocation}`;
-      if (!map[key]) map[key] = { route: key, occurrences: 0, income: 0 };
-      map[key].occurrences += 1;
+      if (!map[key]) map[key] = { route: key, trips: 0, income: 0 };
+      map[key].trips += 1;
       map[key].income += Number(t.totalIncome) || 0;
-    });
-    // Event bookings (charters/private hires) count toward how often a
-    // route is serviced, but NOT toward its income here — a charter's
-    // income is already counted once, via its own PRIVATE_TRIP trip
-    // record above (optionally linked from the Event Booking). Adding
-    // eventValue on top of that would double-count the same money.
-    DB.readAll("events").filter(e => e.eventDate && e.eventDate >= fromDate && e.eventDate <= toDate).forEach(e => {
-      const key = `${e.startLocation} → ${e.endLocation}`;
-      if (!map[key]) map[key] = { route: key, occurrences: 0, income: 0 };
-      map[key].occurrences += 1;
     });
     return Object.values(map).sort((a, b) => b.income - a.income).slice(0, limit);
   }
@@ -308,7 +268,7 @@ const Q = (() => {
     const trips = DB.readAll("trips").filter(t => t.tripDate >= fromDate && t.tripDate <= toDate);
     const tripIds = new Set(trips.map(t => t.tripId));
     const tripIncomeById = {}; trips.forEach(t => tripIncomeById[t.tripId] = Number(t.totalIncome) || 0);
-    const assignments = DB.readAll("tripEmployees").filter(te => tripIds.has(te.tripId) && (te.roleInTrip === "DRIVER1" || te.roleInTrip === "DRIVER2"));
+    const assignments = DB.readAll("tripEmployees").filter(te => tripIds.has(te.tripId) && te.roleInTrip === "DRIVER");
     const map = {};
     assignments.forEach(te => {
       if (!map[te.empId]) map[te.empId] = { empId: te.empId, name: empName(te.empId), trips: 0, income: 0 };
@@ -376,19 +336,10 @@ const Q = (() => {
     ].filter(x => x.value > 0);
   }
 
-  /* ---- Customers: bookings linked by NIC or contact number against Event
-     records — contact is used as a fallback since NIC is optional on the
-     Customer record but a booking should still be found without it. ---- */
-  function customerBookingsCount(customer) {
-    if (!customer) return 0;
-    const nic = (customer.nic || "").trim().toLowerCase();
-    const contact = (customer.contact || "").trim().toLowerCase();
-    if (!nic && !contact) return 0;
-    return DB.readAll("events").filter(e => {
-      const eNic = (e.customerNic || "").trim().toLowerCase();
-      const eContact = (e.customerContact || "").trim().toLowerCase();
-      return (nic && eNic === nic) || (contact && eContact === contact);
-    }).length;
+  /* ---- Customers: bookings linked by NIC match against Event records ---- */
+  function customerBookingsCount(nic) {
+    if (!nic) return 0;
+    return DB.readAll("events").filter(e => e.customerNic && e.customerNic.trim().toLowerCase() === nic.trim().toLowerCase()).length;
   }
 
   return {

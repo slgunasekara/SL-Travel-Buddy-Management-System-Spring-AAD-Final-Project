@@ -160,8 +160,7 @@ const PrintReceipt = (() => {
         { label: "Insurance Expiry", value: b.insuranceExpiryDate ? Fmt.date(b.insuranceExpiryDate) : "-" },
         { label: "License Renewal", value: b.licenseRenewalDate ? Fmt.date(b.licenseRenewalDate) : "-" },
         { label: "Current Mileage", value: `${Number(b.currentMileage || 0).toLocaleString()} km` },
-        { label: "Fuel Efficiency", value: b.fuelEfficiency ? `${b.fuelEfficiency} km/l` : "-" },
-        { label: "Route Permit", value: b.routePermitNo ? `${b.routePermitNo} (${b.permitStartLocation} → ${b.permitEndLocation})` : "Charter only — no permit" }
+        { label: "Fuel Efficiency", value: b.fuelEfficiency ? `${b.fuelEfficiency} km/l` : "-" }
       ]
     });
   }
@@ -173,7 +172,7 @@ const PrintReceipt = (() => {
       subheading: `Employee #${e.empId}`,
       rows: [
         { label: "Name", value: e.empName },
-        { label: "Category", value: e.empCategory + (e.empCategory2 ? ` / ${e.empCategory2}` : "") },
+        { label: "Category", value: e.empCategory },
         { label: "Contact", value: e.contactNo },
         { label: "NIC", value: e.nicNo },
         { label: "Address", value: e.address },

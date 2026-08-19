@@ -26,7 +26,7 @@ const Backup = (() => {
   function importFromFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
           if (!data || typeof data !== "object" || !data.tables) {
@@ -34,16 +34,21 @@ const Backup = (() => {
             return;
           }
           let restoredTables = 0;
-          // Awaited so every row in the file is actually confirmed synced
-          // to the backend before this resolves — the caller reloads the
-          // page shortly after, and a reload cancels any request still
-          // in flight, which would otherwise silently drop rows.
-          for (const t of DB.TABLES) {
+          DB.TABLES.forEach(t => {
             if (Array.isArray(data.tables[t])) {
-              await DB.writeAll(t, data.tables[t]);
+              DB.writeAll(t, data.tables[t]);
               restoredTables++;
+              // Keep auto-increment counters ahead of the restored data's max id.
+              const idField = Object.keys(data.tables[t][0] || {}).find(k => /Id$/.test(k));
+              if (idField) {
+                const maxId = data.tables[t].reduce((m, r) => Math.max(m, Number(r[idField]) || 0), 0);
+                const seqKeyName = "bms_seq_" + t;
+                const cur = parseInt(localStorage.getItem(seqKeyName) || "0", 10);
+                if (maxId > cur) localStorage.setItem(seqKeyName, String(maxId));
+              }
             }
-          }
+          });
+          localStorage.setItem("bms_seeded", "1");
           resolve({ restoredTables, exportedAt: data.exportedAt });
         } catch (err) {
           reject(new Error("Couldn't read that file — make sure it's a valid backup JSON."));

@@ -42,8 +42,7 @@ function fieldHtml(f, value) {
       <div class="autocomplete-list" id="ac_${f.name}"></div>
     </div>`;
   }
-  const autocompleteAttr = f.type === "password" ? 'autocomplete="new-password"' : 'autocomplete="off"';
-  return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""} ${autocompleteAttr}/>`;
+  return `<input type="${f.type || "text"}" id="f_${f.name}" value="${Fmt.escapeHtml(val)}" placeholder="${f.placeholder || ""}" ${req} ${f.step ? `step="${f.step}"` : ""} ${f.disabled ? "disabled" : ""} ${f.readonly ? "readonly" : ""}/>`;
 }
 
 function readFieldValue(f) {
@@ -154,9 +153,7 @@ function renderCrudPage(container, cfg) {
       const items = f.source().filter(it => it.label.toLowerCase().includes(term)).slice(0, 8);
       if (items.length === 0) {
         list.innerHTML = strict
-          ? (editingId
-              ? `<div class="autocomplete-empty">Current value: "${Fmt.escapeHtml(input.value)}" — it's kept as-is unless you pick a replacement below.</div>`
-              : `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`)
+          ? `<div class="autocomplete-empty">No matching record found — please pick one from the list.</div>`
           : `<div class="autocomplete-empty">No matches — keep typing to add a new one.</div>`;
       } else {
         list.innerHTML = items.map((it, i) => `
@@ -179,16 +176,7 @@ function renderCrudPage(container, cfg) {
     }
 
     input.addEventListener("input", debounce(renderSuggestions, 120));
-    input.addEventListener("focus", () => {
-      // For a strict (searchSelect) field that's already linked to a valid
-      // record — i.e. we're editing an existing row — don't pop the
-      // suggestion list open just because the field was focused/clicked.
-      // The existing value is already trusted (see clearHiddenIfNoLongerValid
-      // above), so there's nothing wrong to report; only show suggestions
-      // once the person actually starts typing to change it.
-      if (strict && editingId) return;
-      renderSuggestions();
-    });
+    input.addEventListener("focus", renderSuggestions);
     input.addEventListener("blur", () => setTimeout(() => { list.classList.remove("show"); clearHiddenIfNoLongerValid(); }, 120));
   }
 
@@ -518,21 +506,5 @@ function renderCrudPage(container, cfg) {
 
   clearForm();
   renderTable();
-
-  // If Global Search sent us here to jump to a specific record, select it
-  // now — regardless of any leftover search-box filter — and give the row
-  // a brief highlight pulse so it's obvious which one matched.
-  const jumpId = (typeof GlobalSearch !== "undefined") ? GlobalSearch.consumeJumpTarget(cfg.table) : null;
-  if (jumpId !== null && jumpId !== undefined) {
-    qs("#searchBox", container).value = "";
-    renderTable();
-    selectRow(jumpId);
-    const tr = qs(`#dataTable tbody tr[data-id="${jumpId}"]`, container);
-    if (tr) {
-      tr.classList.add("jump-highlight");
-      setTimeout(() => tr.classList.remove("jump-highlight"), 2500);
-    }
-  }
-
   return { renderTable, clearForm };
 }

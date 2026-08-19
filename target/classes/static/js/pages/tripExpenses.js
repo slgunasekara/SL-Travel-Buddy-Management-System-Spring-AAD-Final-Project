@@ -8,11 +8,11 @@
    saved in the very same action. */
 function renderTripExpensesPage(container) {
   const CREW_SLOTS = [
-    { key: "driver1", label: "Driver 1" },
-    { key: "driver2", label: "Driver 2" },
-    { key: "conductor", label: "Conductor" },
-    { key: "helper", label: "Helper" },
-    { key: "cleaner", label: "Cleaner" }
+    { key: "driver1", label: "Driver 1", role: "DRIVER", index: 0 },
+    { key: "driver2", label: "Driver 2", role: "DRIVER", index: 1 },
+    { key: "conductor", label: "Conductor", role: "CONDUCTOR", index: 0 },
+    { key: "helper", label: "Helper", role: "HELPER", index: 0 },
+    { key: "cleaner", label: "Cleaner", role: "CLEANER", index: 0 }
   ];
 
   const tripOptions = () => DB.readAll("trips").map(t => `<option value="${t.tripId}">#${t.tripId} — ${t.startLocation} → ${t.endLocation} (${Fmt.date(t.tripDate)})</option>`).join("");
@@ -109,11 +109,8 @@ function renderTripExpensesPage(container) {
   function crewSlotInfo(tripId) {
     const crew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
     const salaries = DB.readAll("employeeSalaries").filter(s => s.tripId === tripId && s.fromTripExpense);
-    const byRole = {
-      DRIVER1: crew.find(c => c.roleInTrip === "DRIVER1"),
-      DRIVER2: crew.find(c => c.roleInTrip === "DRIVER2"),
-      CONDUCTOR: crew.find(c => c.roleInTrip === "CONDUCTOR"), HELPER: crew.find(c => c.roleInTrip === "HELPER"), CLEANER: crew.find(c => c.roleInTrip === "CLEANER")
-    };
+    const drivers = crew.filter(c => c.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
+    const byRole = { CONDUCTOR: crew.find(c => c.roleInTrip === "CONDUCTOR"), HELPER: crew.find(c => c.roleInTrip === "HELPER"), CLEANER: crew.find(c => c.roleInTrip === "CLEANER") };
 
     function info(rec) {
       if (!rec) return null;
@@ -121,7 +118,7 @@ function renderTripExpensesPage(container) {
       return { empId: rec.empId, name: Q.empName(rec.empId), amount: sal ? sal.amount : null };
     }
     return {
-      driver1: info(byRole.DRIVER1), driver2: info(byRole.DRIVER2),
+      driver1: info(drivers[0]), driver2: info(drivers[1]),
       conductor: info(byRole.CONDUCTOR), helper: info(byRole.HELPER), cleaner: info(byRole.CLEANER)
     };
   }

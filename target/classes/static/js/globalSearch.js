@@ -35,28 +35,28 @@ const GlobalSearch = (() => {
     const out = [];
 
     DB.readAll("buses").forEach(b => {
-      if (`${b.busNumber} ${b.busBrandName} ${b.busType} ${b.routePermitNo || ""} ${b.permitStartLocation || ""} ${b.permitEndLocation || ""}`.toLowerCase().includes(t)) {
-        out.push({ group: "Buses", icon: "bus", title: b.busNumber, sub: `${b.busBrandName} · ${b.busType}`, hash: "#/buses", table: "buses", id: b.busId });
+      if (`${b.busNumber} ${b.busBrandName} ${b.busType}`.toLowerCase().includes(t)) {
+        out.push({ group: "Buses", icon: "bus", title: b.busNumber, sub: `${b.busBrandName} · ${b.busType}`, hash: "#/buses" });
       }
     });
     DB.readAll("trips").forEach(tr => {
       if (`${tr.startLocation} ${tr.endLocation} ${tr.tripCategory}`.toLowerCase().includes(t)) {
-        out.push({ group: "Trips", icon: "route", title: `${tr.startLocation} → ${tr.endLocation}`, sub: `${tr.tripCategory} · ${Fmt.date(tr.tripDate)}`, hash: "#/trips", table: "trips", id: tr.tripId });
+        out.push({ group: "Trips", icon: "route", title: `${tr.startLocation} → ${tr.endLocation}`, sub: `${tr.tripCategory} · ${Fmt.date(tr.tripDate)}`, hash: "#/trips" });
       }
     });
     DB.readAll("employees").forEach(e => {
-      if (`${e.empName} ${e.empCategory} ${e.empCategory2 || ""} ${e.contactNo}`.toLowerCase().includes(t)) {
-        out.push({ group: "Employees", icon: "users", title: e.empName, sub: `${e.empCategory}${e.empCategory2 ? " / " + e.empCategory2 : ""} · ${e.contactNo}`, hash: "#/employees", table: "employees", id: e.empId });
+      if (`${e.empName} ${e.empCategory} ${e.contactNo}`.toLowerCase().includes(t)) {
+        out.push({ group: "Employees", icon: "users", title: e.empName, sub: `${e.empCategory} · ${e.contactNo}`, hash: "#/employees" });
       }
     });
     DB.readAll("customers").forEach(c => {
       if (`${c.name} ${c.contact} ${c.nic}`.toLowerCase().includes(t)) {
-        out.push({ group: "Customers", icon: "users", title: c.name, sub: c.contact || "", hash: "#/customers", table: "customers", id: c.customerId });
+        out.push({ group: "Customers", icon: "users", title: c.name, sub: c.contact || "", hash: "#/customers" });
       }
     });
     DB.readAll("events").forEach(ev => {
       if (`${ev.customerName} ${ev.startLocation} ${ev.endLocation}`.toLowerCase().includes(t)) {
-        out.push({ group: "Event Bookings", icon: "calendar", title: ev.customerName, sub: `${ev.startLocation} → ${ev.endLocation}`, hash: "#/events", table: "events", id: ev.eventId });
+        out.push({ group: "Event Bookings", icon: "calendar", title: ev.customerName, sub: `${ev.startLocation} → ${ev.endLocation}`, hash: "#/events" });
       }
     });
 
@@ -114,19 +114,7 @@ const GlobalSearch = (() => {
     const r = results[idx];
     if (!r) return;
     close();
-    if (r.table && r.id !== undefined) setJumpTarget(r.table, r.id);
     location.hash = r.hash;
-  }
-
-  // One-shot "jump to this record" handoff to whichever page renders next —
-  // consumed (and cleared) by that page so it only fires once.
-  let pendingJump = null;
-  function setJumpTarget(table, id) { pendingJump = { table, id }; }
-  function consumeJumpTarget(table) {
-    if (!pendingJump || pendingJump.table !== table) return null;
-    const id = pendingJump.id;
-    pendingJump = null;
-    return id;
   }
 
   function onInputKeydown(e) {
@@ -162,5 +150,5 @@ const GlobalSearch = (() => {
     }
   });
 
-  return { open, close, toggle, consumeJumpTarget };
+  return { open, close, toggle };
 })();

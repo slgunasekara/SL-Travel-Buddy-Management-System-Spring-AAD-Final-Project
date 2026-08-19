@@ -1,21 +1,7 @@
 /* pages/parts.js — Manage Part Purchase (mirrors ManagePartPurchaseController) */
 function renderPartsPage(container) {
   const busOptions = () => DB.readAll("buses").map(b => ({ value: b.busId, label: `${b.busId} — ${b.busNumber}` }));
-  const maintOptionsForBus = (busId) => DB.readAll("maintenance")
-    .filter(m => !busId || Number(m.busId) === Number(busId))
-    .map(m => ({ value: m.maintId, label: `#${m.maintId} — ${(m.maintenanceType || "").replace(/_/g, " ")} (${Fmt.date(m.serviceDate)})` }));
-
-  // The Linked Maintenance dropdown only ever shows jobs for the currently
-  // selected bus — a part bought for Bus A can no longer be linked to Bus
-  // B's maintenance job by mistake.
-  function refreshMaintOptions(busId) {
-    const sel = qs("#f_maintId", container);
-    if (!sel) return;
-    const keep = sel.value;
-    const opts = maintOptionsForBus(busId);
-    sel.innerHTML = `<option value="">None</option>` + opts.map(o => `<option value="${o.value}">${Fmt.escapeHtml(o.label)}</option>`).join("");
-    sel.value = opts.some(o => String(o.value) === String(keep)) ? keep : "";
-  }
+  const maintOptions = () => DB.readAll("maintenance").map(m => ({ value: m.maintId, label: `#${m.maintId} — ${(m.maintenanceType || "").replace(/_/g, " ")} (${Fmt.date(m.serviceDate)})` }));
 
   function recalcTotal() {
     const qty = Number(qs("#f_quantity")?.value || 0);
@@ -31,8 +17,8 @@ function renderPartsPage(container) {
     idField: "purchaseId",
     singular: "Part purchase",
     fields: [
-      { name: "busId", label: "Bus", type: "select", required: true, options: busOptions(), onChange: (data) => refreshMaintOptions(data.busId) },
-      { name: "maintId", label: "Linked Maintenance (optional)", type: "select", options: maintOptionsForBus(null) },
+      { name: "busId", label: "Bus", type: "select", required: true, options: busOptions() },
+      { name: "maintId", label: "Linked Maintenance (optional)", type: "select", options: maintOptions() },
       { name: "partName", label: "Part Name", required: true, placeholder: "e.g. Brake Pads" },
       { name: "quantity", label: "Quantity", type: "number", required: true, onChange: recalcTotal },
       { name: "unitPrice", label: "Unit Price (Rs.)", type: "number", step: "0.01", required: true, onChange: recalcTotal },
@@ -63,8 +49,6 @@ function renderPartsPage(container) {
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; },
-    onSelectRow(row) { refreshMaintOptions(row.busId); },
-    onClearForm() { refreshMaintOptions(null); },
     onPrint(row) { PrintReceipt.partPurchaseReceipt(row, Q.busNumber(row.busId)); }
   });
 

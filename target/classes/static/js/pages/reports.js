@@ -124,25 +124,21 @@ function renderReportsPage(container) {
 
     if (activeTab === "income") {
       const rows = Q.incomeReport(fromDate, toDate);
-      // An Event row whose linkedTripId is set represents the same money as
-      // its Trip row above — still shown for traceability, just excluded
-      // from the total so that money isn't counted twice.
-      const totalIncome = rows.reduce((a, r) => a + (r.type === "Event" && r.linkedTripId ? 0 : r.income), 0);
       host.innerHTML = `
         ${summaryCardsHtml()}
         <div class="card">
           <div class="table-toolbar"><h3>Income Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
           <div class="table-wrap"><table class="data-table">
-            <thead><tr><th>Type</th><th>ID</th><th>Reference</th><th>Date</th><th>Income</th></tr></thead>
-            <tbody>${rows.length ? rows.map(r => `<tr><td><span class="badge ${r.type === "Trip" ? "badge--blue" : "badge--purple"}">${r.type}</span></td><td>#${r.refId}</td><td>${Fmt.escapeHtml(r.reference)}</td><td>${Fmt.date(r.date)}</td><td>${Fmt.money(r.income)}${r.type === "Event" && r.linkedTripId ? ` <span class="muted" style="font-size:11px;">(linked to Trip #${r.linkedTripId} — not double-counted)</span>` : ""}</td></tr>`).join("") : `<tr><td colspan="5"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
+            <thead><tr><th>Trip ID</th><th>Bus</th><th>Date</th><th>Income</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r => `<tr><td>#${r.tripId}</td><td>${r.busNumber}</td><td>${Fmt.date(r.tripDate)}</td><td>${Fmt.money(r.totalIncome)}</td></tr>`).join("") : `<tr><td colspan="4"><div class="table-empty">No income in this range.</div></td></tr>`}</tbody>
           </table></div>
         </div>`;
-      qs("#exp")?.addEventListener("click", () => exportTable(["Type", "ID", "Reference", "Date", "Income"], rows.map(r => [r.type, r.refId, r.reference, r.date, r.income]), `income_report_${fromDate}_${toDate}.csv`));
+      qs("#exp")?.addEventListener("click", () => exportTable(["Trip ID", "Bus", "Date", "Income"], rows.map(r => [r.tripId, r.busNumber, r.tripDate, r.totalIncome]), `income_report_${fromDate}_${toDate}.csv`));
       qs("#printBtn")?.addEventListener("click", () => PrintReceipt.tablePrint({
         docTitle: "Income Report", heading: "Income Report", subheading: `${Fmt.date(fromDate)} – ${Fmt.date(toDate)}`,
-        columns: ["Type", "ID", "Reference", "Date", "Income"],
-        rows: rows.map(r => [r.type, `#${r.refId}`, r.reference, Fmt.date(r.date), Fmt.money(r.income)]),
-        totalLabel: "Total Income", totalValue: Fmt.money(totalIncome)
+        columns: ["Trip ID", "Bus", "Date", "Income"],
+        rows: rows.map(r => [`#${r.tripId}`, r.busNumber, Fmt.date(r.tripDate), Fmt.money(r.totalIncome)]),
+        totalLabel: "Total Income", totalValue: Fmt.money(rows.reduce((a, r) => a + r.totalIncome, 0))
       }));
       return;
     }
@@ -153,7 +149,6 @@ function renderReportsPage(container) {
         ${summaryCardsHtml()}
         <div class="card">
           <div class="table-toolbar"><h3>Expense Report</h3><div class="table-toolbar__right"><button class="btn btn--ghost btn--sm" id="printBtn">🖨 Print</button><button class="btn btn--ghost btn--sm" id="exp">Export CSV</button></div></div>
-          <p class="muted" style="padding:0 16px;">Fuel, parking, trip-other, maintenance, part purchases and other services. Salary payments have their own <strong>Salary Report</strong> tab.</p>
           <div class="table-wrap"><table class="data-table">
             <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
             <tbody>${rows.length ? rows.map(r => `<tr><td>${Fmt.date(r.expenseDate)}</td><td><span class="badge badge--gray">${r.category}</span></td><td>${Fmt.money(r.amount)}</td></tr>`).join("") : `<tr><td colspan="3"><div class="table-empty">No expenses in this range.</div></td></tr>`}</tbody>
@@ -294,10 +289,10 @@ function renderReportsPage(container) {
                   <div class="leaderboard-rank">${i + 1}</div>
                   <div class="leaderboard-main">
                     <div class="leaderboard-title">${Fmt.escapeHtml(r.route)}</div>
-                    <div class="leaderboard-sub">${r.occurrences} booking${r.occurrences === 1 ? "" : "s"} (trips + events)</div>
+                    <div class="leaderboard-sub">${r.trips} trip${r.trips === 1 ? "" : "s"}</div>
                   </div>
                   <div class="leaderboard-value">${Fmt.money(r.income)}</div>
-                </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips or event bookings in this range.</div>`}
+                </div>`).join("") : `<div class="table-empty"><div class="table-empty__icon">${EMPTY_STATE_ICON}</div>No trips in this range.</div>`}
             </div>
           </div>
           <div class="card">

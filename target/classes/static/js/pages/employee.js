@@ -1,14 +1,13 @@
 /* pages/employee.js — Manage Employee (mirrors ManageEmployeeController) */
 function renderEmployeePage(container) {
   const LICENCE_REQUIRED_CATEGORIES = ["DRIVER", "MANAGER"];
-  const SECONDARY_ROLE_OPTIONS = ["", "DRIVER", "CONDUCTOR", "MANAGER", "HELPER", "CLEANER"];
 
-  function licenceNeeded(category, category2) {
-    return LICENCE_REQUIRED_CATEGORIES.includes(category) || LICENCE_REQUIRED_CATEGORIES.includes(category2);
+  function licenceNeeded(category) {
+    return LICENCE_REQUIRED_CATEGORIES.includes(category);
   }
 
-  function updateLicenceRequirement(category, category2) {
-    const needed = licenceNeeded(category, category2 !== undefined ? category2 : qs("#f_empCategory2", container)?.value);
+  function updateLicenceRequirement(category) {
+    const needed = licenceNeeded(category);
     const input = qs("#f_drivingLicenceNo", container);
     const label = container.querySelector('label[for="f_drivingLicenceNo"]');
     if (input) input.required = needed;
@@ -22,8 +21,7 @@ function renderEmployeePage(container) {
     idField: "empId",
     singular: "Employee",
     fields: [
-      { name: "empCategory", label: "Category", type: "select", required: true, options: ["DRIVER", "CONDUCTOR", "MANAGER", "HELPER", "CLEANER"], onChange: (data) => updateLicenceRequirement(data.empCategory, data.empCategory2) },
-      { name: "empCategory2", label: "Secondary Role (optional)", type: "select", options: SECONDARY_ROLE_OPTIONS, onChange: (data) => updateLicenceRequirement(data.empCategory, data.empCategory2) },
+      { name: "empCategory", label: "Category", type: "select", required: true, options: ["DRIVER", "CONDUCTOR", "MANAGER", "HELPER", "CLEANER"], onChange: (data) => updateLicenceRequirement(data.empCategory) },
       { name: "empName", label: "Full Name", required: true, placeholder: "Employee name" },
       { name: "address", label: "Address", required: true, wide: true, placeholder: "Residential address" },
       { name: "contactNo", label: "Contact No.", required: true, placeholder: "10-digit number" },
@@ -37,13 +35,13 @@ function renderEmployeePage(container) {
     columns: [
       { key: "empId", label: "ID" },
       { key: "empName", label: "Name" },
-      { key: "empCategory", label: "Category", render: r => `<span class="badge badge--blue">${r.empCategory}</span>${r.empCategory2 ? ` <span class="badge badge--gray">${r.empCategory2}</span>` : ""}` },
+      { key: "empCategory", label: "Category", render: r => `<span class="badge badge--blue">${r.empCategory}</span>` },
       { key: "contactNo", label: "Contact" },
       { key: "nicNo", label: "NIC" },
       { key: "joinDate", label: "Join Date", render: r => Fmt.date(r.joinDate) },
       { key: "empStatus", label: "Status", render: r => `<span class="badge badge--${empStatusTone(r.empStatus)}">${r.empStatus.replace("_", " ")}</span>` }
     ],
-    searchKeys: ["empName", "empCategory", "empCategory2", "contactNo", "nicNo", "empStatus"],
+    searchKeys: ["empName", "empCategory", "contactNo", "nicNo", "empStatus"],
     defaultSort: (a, b) => b.empId - a.empId,
     emptyText: "No employees yet — add your first team member above.",
     csvImport: true,
@@ -52,15 +50,14 @@ function renderEmployeePage(container) {
       if (!Validate.isNic(data.nicNo)) return { error: "Invalid NIC format! Use 9 digits + V, or 12 digits." };
       if (data.joinDate && new Date(data.joinDate) > new Date()) return { error: "Join date cannot be in the future!" };
       if (data.exitDate && data.joinDate && new Date(data.exitDate) < new Date(data.joinDate)) return { error: "Exit date cannot be before join date!" };
-      if (data.empCategory2 === data.empCategory) data.empCategory2 = "";
-      if (licenceNeeded(data.empCategory, data.empCategory2) && Validate.isEmpty(data.drivingLicenceNo)) {
-        return { error: "Driving Licence No. is required for Driver and Manager category employees (primary or secondary role)." };
+      if (licenceNeeded(data.empCategory) && Validate.isEmpty(data.drivingLicenceNo)) {
+        return { error: "Driving Licence No. is required for Driver and Manager category employees." };
       }
       return null;
     },
     onCreate(row) { row.createdBy = Session.currentUser().userId; },
-    onSelectRow(row) { updateLicenceRequirement(row.empCategory, row.empCategory2); },
-    onClearForm() { updateLicenceRequirement("", ""); },
+    onSelectRow(row) { updateLicenceRequirement(row.empCategory); },
+    onClearForm() { updateLicenceRequirement(""); },
     canDelete(id) {
       const hasSalary = DB.readAll("employeeSalaries").some(s => s.empId === id);
       const hasTrip = DB.readAll("tripEmployees").some(t => t.empId === id);

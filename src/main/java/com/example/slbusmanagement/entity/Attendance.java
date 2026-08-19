@@ -9,34 +9,25 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-public class Accident {
+public class Attendance {
 
     @Id
-    private Long accidentId;
+    private Long attendanceId;
 
-    private Long busId;
+    private Long empId;
 
+    private String date;
 
-    private Long tripId;
+    private String attendanceStatus;
 
+    private String leaveType;
 
-    private Long driverId;
-
-    private String location;
-
-    private String accidentDate;
-
-    private Double estimatedCost;
-
-    private String description;
-
-    private String photo1Url;
-    private String photo2Url;
-    private String photo3Url;
+    private String notes;
 
     private Long createdBy;
 
@@ -44,5 +35,4 @@ public class Accident {
 
     @Enumerated(EnumType.STRING)
     private RecordStatus status = RecordStatus.ACTIVE;
-
 }

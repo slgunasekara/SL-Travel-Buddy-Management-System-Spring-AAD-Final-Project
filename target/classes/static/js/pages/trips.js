@@ -2,7 +2,7 @@
 function renderTripsPage(container) {
   let editingId = null;
 
-  const busOptions = () => DB.readAll("buses").map(b => `<option value="${b.busId}">${b.busId} — ${b.busNumber} (${b.busType})${b.routePermitNo ? "" : " — charter only, no permit"}</option>`).join("");
+  const busOptions = () => DB.readAll("buses").map(b => `<option value="${b.busId}">${b.busId} — ${b.busNumber} (${b.busType})</option>`).join("");
 
   container.innerHTML = `
     <div class="page-head">
@@ -31,7 +31,6 @@ function renderTripsPage(container) {
         <div class="form-field">
           <label>Start Location <span class="req">*</span></label>
           <input type="text" id="f_startLocation" required />
-          <span class="muted" id="routeLockHint" style="font-size:11.5px; display:none;"></span>
         </div>
         <div class="form-field">
           <label>End Location <span class="req">*</span></label>
@@ -83,48 +82,6 @@ function renderTripsPage(container) {
       <div id="calendarViewWrap" style="display:none"></div>
     </div>`;
 
-  // A bus's NTC Route Permit is fixed to one route — so for a ROUTE-category
-  // trip, Start/End Location are auto-filled from the selected bus's permit
-  // and locked (can't be hand-typed), the same way Assign Crew only offers
-  // employees whose actual role matches a slot. Other trip categories
-  // (SCHOOL_SERVICE/OFFICE_SERVICE/PRIVATE_TRIP) aren't permit-restricted,
-  // so those stay free-text as before.
-  function applyRouteLock() {
-    const category = qs("#f_tripCategory").value;
-    const startEl = qs("#f_startLocation");
-    const endEl = qs("#f_endLocation");
-    const hint = qs("#routeLockHint");
-
-    if (category !== "ROUTE") {
-      startEl.readOnly = false;
-      endEl.readOnly = false;
-      startEl.placeholder = "";
-      endEl.placeholder = "";
-      hint.style.display = "none";
-      return;
-    }
-
-    const bus = DB.readAll("buses").find(b => b.busId === Number(qs("#f_busId").value));
-    startEl.readOnly = true;
-    endEl.readOnly = true;
-
-    if (bus && bus.permitStartLocation && bus.permitEndLocation) {
-      startEl.value = bus.permitStartLocation;
-      endEl.value = bus.permitEndLocation;
-      hint.textContent = `Locked to ${bus.busNumber}'s Route Permit (${bus.routePermitNo || "no permit no. on file"}).`;
-      hint.style.display = "";
-    } else {
-      startEl.value = "";
-      endEl.value = "";
-      startEl.placeholder = bus ? "This bus has no Route Permit set" : "Select a bus first";
-      endEl.placeholder = startEl.placeholder;
-      hint.textContent = bus
-        ? `${bus.busNumber} has no Route Permit — add one in Manage Bus first, or choose a different trip category.`
-        : "";
-      hint.style.display = bus ? "" : "none";
-    }
-  }
-
   function readForm() {
     return {
       tripCategory: qs("#f_tripCategory").value,
@@ -147,13 +104,11 @@ function renderTripsPage(container) {
     qs("#f_totalIncome").value = t.totalIncome ?? "";
     qs("#f_tripDate").value = t.tripDate || "";
     qs("#f_description").value = t.description || "";
-    applyRouteLock();
   }
 
   function clearForm() {
     editingId = null;
     ["f_tripCategory", "f_busId", "f_startLocation", "f_endLocation", "f_distance", "f_totalIncome", "f_tripDate", "f_description"].forEach(id => qs("#" + id).value = "");
-    applyRouteLock();
     qs("#btnSave").disabled = false;
     qs("#btnUpdate").disabled = true;
     qs("#btnDelete").disabled = true;
@@ -163,13 +118,6 @@ function renderTripsPage(container) {
   function validate(data) {
     if (Validate.isEmpty(data.tripCategory)) { Toast.warning("Please select a trip category."); return false; }
     if (!data.busId) { Toast.warning("Please select a bus."); return false; }
-    if (data.tripCategory === "ROUTE") {
-      const bus = DB.readAll("buses").find(b => b.busId === data.busId);
-      if (!bus || !bus.permitStartLocation || !bus.permitEndLocation) {
-        Toast.warning("This bus doesn't have a Route Permit set. Add one in Manage Bus first, or pick a different trip category.");
-        return false;
-      }
-    }
     if (Validate.isEmpty(data.startLocation) || Validate.isEmpty(data.endLocation)) { Toast.warning("Start and end locations are required."); return false; }
     if (!Validate.isPositiveNumber(data.totalIncome)) { Toast.warning("Total income must be a positive number."); return false; }
     if (Validate.isEmpty(data.tripDate)) { Toast.warning("Trip date is required."); return false; }
@@ -177,15 +125,10 @@ function renderTripsPage(container) {
     return true;
   }
 
-  function roleLabel(role) {
-    const map = { DRIVER1: "Driver 1", DRIVER2: "Driver 2", CONDUCTOR: "Conductor", HELPER: "Helper", CLEANER: "Cleaner" };
-    return map[role] || role;
-  }
-
   function crewSummary(tripId) {
     const list = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
     if (list.length === 0) return `<span class="muted">Unassigned</span>`;
-    return list.map(te => `<span class="chip">${Fmt.escapeHtml(Q.empName(te.empId))} <em>(${roleLabel(te.roleInTrip)})</em></span>`).join(" ");
+    return list.map(te => `<span class="chip">${Fmt.escapeHtml(Q.empName(te.empId))} <em>(${te.roleInTrip})</em></span>`).join(" ");
   }
 
   function renderTable() {
@@ -233,7 +176,7 @@ function renderTripsPage(container) {
       tr.querySelector('[data-act="crew"]').addEventListener("click", () => openCrewModal(id));
       tr.querySelector('[data-act="print"]').addEventListener("click", () => {
         const t = DB.readAll("trips").find(x => x.tripId === id);
-        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${roleLabel(te.roleInTrip)})`).join(", ");
+        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${te.roleInTrip})`).join(", ");
         PrintReceipt.tripReceipt(t, Q.busNumber(t.busId), crew);
       });
     });
@@ -253,8 +196,7 @@ function renderTripsPage(container) {
   async function doDelete(id) {
     const hasExpenses = DB.readAll("tripExpenses").some(e => e.tripId === id);
     const hasSalary = DB.readAll("employeeSalaries").some(s => s.tripId === id);
-    const hasServices = DB.readAll("otherServices").some(s => s.tripId === id);
-    if (hasExpenses || hasSalary || hasServices) { Toast.error("Cannot delete this trip — it has linked expenses, salary, or other-service records."); return; }
+    if (hasExpenses || hasSalary) { Toast.error("Cannot delete this trip — it has linked expenses or salary records."); return; }
     const ok = await confirmDialog({ title: "Delete Trip", message: "This will also remove crew assignments for this trip. Continue?", okText: "Delete", danger: true });
     if (!ok) return;
     DB.writeAll("trips", DB.readAll("trips").filter(t => t.tripId !== id));
@@ -268,32 +210,20 @@ function renderTripsPage(container) {
     const trip = DB.readAll("trips").find(t => t.tripId === tripId);
     const employees = DB.readAll("employees").filter(e => e.empStatus === "ACTIVE");
     const currentCrew = DB.readAll("tripEmployees").filter(te => te.tripId === tripId);
-    const drivers = currentCrew.filter(te => te.roleInTrip === "DRIVER1" || te.roleInTrip === "DRIVER2");
-    const driver1 = drivers.find(te => te.roleInTrip === "DRIVER1") || null;
-    const driver2 = drivers.find(te => te.roleInTrip === "DRIVER2") || null;
+    const drivers = currentCrew.filter(te => te.roleInTrip === "DRIVER").sort((a, b) => a.tripEmpId - b.tripEmpId);
 
     const SLOTS = [
-      { key: "driver1", label: "Driver 1", role: "DRIVER1", category: "DRIVER", existing: driver1 },
-      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER2", category: "DRIVER", existing: driver2 },
-      { key: "conductor", label: "Conductor", role: "CONDUCTOR", category: "CONDUCTOR", existing: currentCrew.find(te => te.roleInTrip === "CONDUCTOR") || null },
-      { key: "helper", label: "Helper", role: "HELPER", category: "HELPER", existing: currentCrew.find(te => te.roleInTrip === "HELPER") || null },
-      { key: "cleaner", label: "Cleaner", role: "CLEANER", category: "CLEANER", existing: currentCrew.find(te => te.roleInTrip === "CLEANER") || null }
+      { key: "driver1", label: "Driver 1", role: "DRIVER", existing: drivers[0] || null },
+      { key: "driver2", label: "Driver 2", sub: "optional — for trips needing two drivers", role: "DRIVER", existing: drivers[1] || null },
+      { key: "conductor", label: "Conductor", role: "CONDUCTOR", existing: currentCrew.find(te => te.roleInTrip === "CONDUCTOR") || null },
+      { key: "helper", label: "Helper", role: "HELPER", existing: currentCrew.find(te => te.roleInTrip === "HELPER") || null },
+      { key: "cleaner", label: "Cleaner", role: "CLEANER", existing: currentCrew.find(te => te.roleInTrip === "CLEANER") || null }
     ];
 
-    // An employee can only be assigned to a slot that matches their actual
-    // role (primary or secondary — that's what the Secondary Role field on
-    // Manage Employee is for). A Driver-only employee is not offered for
-    // the Conductor slot at all — this is a hard filter, not just a hint,
-    // so a mismatched assignment can't slip through.
-    function matchesCategory(emp, category) {
-      return emp.empCategory === category || emp.empCategory2 === category;
-    }
-    function empSuggestions(term, category) {
+    function empSuggestions(term) {
       const t = term.trim().toLowerCase();
       if (!t) return [];
-      return employees
-        .filter(e => e.empName.toLowerCase().includes(t) && matchesCategory(e, category))
-        .slice(0, 8);
+      return employees.filter(e => e.empName.toLowerCase().includes(t)).slice(0, 8);
     }
 
     openModal({
@@ -319,14 +249,14 @@ function renderTripsPage(container) {
           const list = qs(`#slot_${s.key}_list`, overlay);
 
           function renderSuggestions() {
-            const matches = empSuggestions(input.value, s.category);
+            const matches = empSuggestions(input.value);
             if (!input.value.trim()) { list.classList.remove("show"); list.innerHTML = ""; hidden.value = ""; return; }
             list.innerHTML = matches.length === 0
-              ? `<div class="autocomplete-empty">No matching ${s.category.toLowerCase()} found for "${Fmt.escapeHtml(input.value)}".</div>`
+              ? `<div class="autocomplete-empty">No matching employee found.</div>`
               : matches.map((e, i) => `
                 <div class="autocomplete-item" data-idx="${i}">
                   <div class="autocomplete-item__title">${Fmt.escapeHtml(e.empName)}</div>
-                  <div class="autocomplete-item__sub">${e.empCategory}${e.empCategory2 ? " / " + e.empCategory2 : ""} · ${e.contactNo}</div>
+                  <div class="autocomplete-item__sub">${e.empCategory} · ${e.contactNo}</div>
                 </div>`).join("");
             qsa(".autocomplete-item", list).forEach(el => {
               el.addEventListener("mousedown", (e) => {
@@ -340,9 +270,8 @@ function renderTripsPage(container) {
             list.classList.add("show");
           }
           function clearHiddenIfInvalid() {
-            const match = employees.find(e => e.empName === input.value && matchesCategory(e, s.category));
+            const match = employees.find(e => e.empName === input.value);
             hidden.value = match ? match.empId : "";
-            if (input.value.trim() && !match) input.value = "";
           }
           input.addEventListener("input", debounce(renderSuggestions, 100));
           input.addEventListener("focus", renderSuggestions);
@@ -350,20 +279,6 @@ function renderTripsPage(container) {
         });
 
         qs("#btnSaveCrew", overlay).addEventListener("click", () => {
-          // Guard against the same person landing in two slots on this
-          // trip at once (e.g. picked as both Driver 1 and Conductor).
-          const picks = SLOTS.map(s => ({ slot: s, empId: qs(`#slot_${s.key}_id`, overlay).value ? Number(qs(`#slot_${s.key}_id`, overlay).value) : null }))
-            .filter(p => p.empId !== null);
-          const seen = new Map();
-          for (const p of picks) {
-            if (seen.has(p.empId)) {
-              const otherSlot = seen.get(p.empId);
-              Toast.error(`${Q.empName(p.empId)} is assigned to both ${otherSlot} and ${p.slot.label} — pick a different person for one of them.`);
-              return;
-            }
-            seen.set(p.empId, p.slot.label);
-          }
-
           let all = DB.readAll("tripEmployees");
           let changed = 0;
           SLOTS.forEach(s => {
@@ -420,8 +335,6 @@ function renderTripsPage(container) {
   qs("#btnReset").addEventListener("click", clearForm);
   qs("#btnRefresh").addEventListener("click", () => { qs("#searchBox").value = ""; renderTable(); });
   qs("#searchBox").addEventListener("input", debounce(renderTable, 200));
-  qs("#f_tripCategory").addEventListener("change", applyRouteLock);
-  qs("#f_busId").addEventListener("change", applyRouteLock);
 
   /* ---- Calendar view (additive; table view + all CRUD above is unchanged) ---- */
   let calendarCursor = new Date();
@@ -513,7 +426,7 @@ function renderTripsPage(container) {
       tr.querySelector('[data-act="crew"]').addEventListener("click", () => openCrewModal(id));
       tr.querySelector('[data-act="print"]').addEventListener("click", () => {
         const t = DB.readAll("trips").find(x => x.tripId === id);
-        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${roleLabel(te.roleInTrip)})`).join(", ");
+        const crew = DB.readAll("tripEmployees").filter(te => te.tripId === id).map(te => `${Q.empName(te.empId)} (${te.roleInTrip})`).join(", ");
         PrintReceipt.tripReceipt(t, Q.busNumber(t.busId), crew);
       });
     });
@@ -535,24 +448,4 @@ function renderTripsPage(container) {
 
   clearForm();
   renderTable();
-
-  // Global Search "jump to record" — same behavior as the generic crud.js
-  // pages: make sure the table view is showing, clear any stale filter,
-  // then select and briefly highlight the target trip.
-  const jumpId = (typeof GlobalSearch !== "undefined") ? GlobalSearch.consumeJumpTarget("trips") : null;
-  if (jumpId !== null && jumpId !== undefined) {
-    qs("#viewTableBtn").classList.add("active");
-    qs("#viewCalendarBtn").classList.remove("active");
-    qs("#tableViewWrap").style.display = "";
-    qs("#calendarViewWrap").style.display = "none";
-    qs("#searchBox").value = "";
-    renderTable();
-    selectRow(jumpId);
-    const tr = qs(`#dataTable tbody tr[data-id="${jumpId}"]`);
-    if (tr) {
-      tr.scrollIntoView({ behavior: "smooth", block: "center" });
-      tr.classList.add("jump-highlight");
-      setTimeout(() => tr.classList.remove("jump-highlight"), 2500);
-    }
-  }
 }
