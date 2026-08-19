@@ -51,7 +51,26 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerDTO update(Long id, CustomerDTO dto) {
-        return null;
+        log.info("Update Customer Method Executed....");
+        Customer entity = customerRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Customer not found with ID: " + id));
+
+        entity.setName(dto.getName());
+        entity.setContact(dto.getContact());
+        entity.setNic(dto.getNic());
+        entity.setEmail(dto.getEmail());
+        entity.setAddress(dto.getAddress());
+        entity.setNotes(dto.getNotes());
+        entity.setClientTier(dto.getClientTier());
+        entity.setAgreedRate(dto.getAgreedRate());
+        entity.setBillingCycle(dto.getBillingCycle());
+        entity.setCreatedBy(dto.getCreatedBy());
+        entity.setCreatedAt(dto.getCreatedAt());
+
+        customerRepository.save(entity);
+        log.info("Customer Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
