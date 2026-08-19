@@ -49,7 +49,27 @@ public class AccidentServiceImpl implements AccidentService {
 
     @Override
     public AccidentDTO update(Long id, AccidentDTO dto) {
-        return null;
+        log.info("Update Accident Method Executed....");
+        Accident entity = accidentRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Accident not found with ID: " + id));
+
+        entity.setBusId(dto.getBusId());
+        entity.setTripId(dto.getTripId());
+        entity.setDriverId(dto.getDriverId());
+        entity.setLocation(dto.getLocation());
+        entity.setAccidentDate(dto.getAccidentDate());
+        entity.setEstimatedCost(dto.getEstimatedCost());
+        entity.setDescription(dto.getDescription());
+        entity.setPhoto1Url(dto.getPhoto1Url());
+        entity.setPhoto2Url(dto.getPhoto2Url());
+        entity.setPhoto3Url(dto.getPhoto3Url());
+        entity.setCreatedBy(dto.getCreatedBy());
+        entity.setCreatedAt(dto.getCreatedAt());
+
+        accidentRepository.save(entity);
+        log.info("Accident Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
