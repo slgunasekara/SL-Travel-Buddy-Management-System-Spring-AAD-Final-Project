@@ -50,7 +50,30 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventDTO update(Long id, EventDTO dto) {
-        return null;
+        log.info("Update Event Method Executed....");
+        Event entity = eventRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Event not found with ID: " + id));
+
+        entity.setBusId(dto.getBusId());
+        entity.setLinkedTripId(dto.getLinkedTripId());
+        entity.setStartLocation(dto.getStartLocation());
+        entity.setEndLocation(dto.getEndLocation());
+        entity.setEventValue(dto.getEventValue());
+        entity.setEventDate(dto.getEventDate());
+        entity.setCustomerName(dto.getCustomerName());
+        entity.setCustomerContact(dto.getCustomerContact());
+        entity.setCustomerNic(dto.getCustomerNic());
+        entity.setCustomerAddress(dto.getCustomerAddress());
+        entity.setDescription(dto.getDescription());
+        entity.setEventCompleted(dto.getEventCompleted());
+        entity.setCreatedBy(dto.getCreatedBy());
+        entity.setCreatedAt(dto.getCreatedAt());
+        entity.setUpdatedAt(dto.getUpdatedAt());
+
+        eventRepository.save(entity);
+        log.info("Event Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
