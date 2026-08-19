@@ -73,7 +73,6 @@ public class TripEmployeeServiceImpl implements TripEmployeeService {
                 .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
                 .orElseThrow(() -> new CustomeException(404, "TripEmployee not found with ID: " + id));
 
-
         entity.setStatus(RecordStatus.INACTIVE);
         tripEmployeeRepository.save(entity);
         log.info("TripEmployee Deleted (soft) Successfully....");
