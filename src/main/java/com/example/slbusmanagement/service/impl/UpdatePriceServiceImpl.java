@@ -49,7 +49,24 @@ public class UpdatePriceServiceImpl implements UpdatePriceService {
 
     @Override
     public UpdatePriceDTO update(Long id, UpdatePriceDTO dto) {
-        return null;
+        log.info("Update UpdatePrice Method Executed....");
+        UpdatePrice entity = updatePriceRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "UpdatePrice not found with ID: " + id));
+
+        entity.setUpdateType(dto.getUpdateType());
+        entity.setChangeType(dto.getChangeType());
+        entity.setPreviousValue(dto.getPreviousValue());
+        entity.setNewValue(dto.getNewValue());
+        entity.setChangeAmount(dto.getChangeAmount());
+        entity.setPercentageChange(dto.getPercentageChange());
+        entity.setChangeDate(dto.getChangeDate());
+        entity.setDescription(dto.getDescription());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        updatePriceRepository.save(entity);
+        log.info("UpdatePrice Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
