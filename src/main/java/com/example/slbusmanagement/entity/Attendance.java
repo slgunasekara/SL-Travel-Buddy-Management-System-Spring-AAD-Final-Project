@@ -9,7 +9,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One row per employee per day — Manager Attendance / Leave Tracking.
+ *  attendanceStatus: PRESENT / ABSENT / ON_LEAVE / HALF_DAY.
+ *  leaveType (only when ON_LEAVE): CASUAL / MEDICAL / ANNUAL / UNPAID. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

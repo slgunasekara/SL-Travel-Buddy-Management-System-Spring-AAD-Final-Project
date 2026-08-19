@@ -6,7 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** Bus Retirement/Sale Workflow — written once when a bus is retired/sold,
+ *  alongside soft-deleting the Bus itself. Keeps a permanent lifetime P&L
+ *  snapshot (computed at the moment of sale) so that history survives even
+ *  though the bus itself is no longer in active use. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

@@ -32,6 +32,8 @@ public class Maintenance {
 
     private String description;
 
+    private String receiptPhotoUrl;
+
     private Long createdBy;
 
 

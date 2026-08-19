@@ -20,7 +20,9 @@ public class Event {
 
     private Long busId;
 
-
+    /** Optional reference to the actual PRIVATE_TRIP record for this
+     *  charter — for traceability only, never summed into any total
+     *  (the trip's own income is what counts toward reports/dashboard). */
     private Long linkedTripId;
 
     private String startLocation;

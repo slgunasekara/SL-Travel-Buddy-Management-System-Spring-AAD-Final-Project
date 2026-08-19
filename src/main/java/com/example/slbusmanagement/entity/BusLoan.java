@@ -9,7 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** A loan taken out for a bus purchase. startDate/endDate define the loan
+ *  term; total months owed is derived from that range on the frontend
+ *  (Q.loanTermMonths) rather than stored, so it never goes stale if a
+ *  correction is made to either date. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

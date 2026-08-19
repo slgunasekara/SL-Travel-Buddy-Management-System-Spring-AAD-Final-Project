@@ -9,7 +9,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One insurance policy for a bus. A bus can have several rows over time
+ *  (renewals) — the latest ACTIVE row (by expireDate) is treated as the
+ *  bus's current policy wherever it's looked up (claims auto-fill, alerts). */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** One monthly installment paid against a BusLoan. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

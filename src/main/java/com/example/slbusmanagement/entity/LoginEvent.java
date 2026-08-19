@@ -6,7 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One row per successful login — powers the "X just logged in" toast that
+ *  Owner/Manager users see, and the audit trail behind it. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

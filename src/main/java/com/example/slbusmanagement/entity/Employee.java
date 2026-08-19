@@ -1,10 +1,10 @@
 package com.example.slbusmanagement.entity;
 
+import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +20,7 @@ public class Employee {
 
     private String empCategory;
 
+    /** Optional second role (e.g. a Driver who also Conducts). */
     private String empCategory2;
 
     private String empName;

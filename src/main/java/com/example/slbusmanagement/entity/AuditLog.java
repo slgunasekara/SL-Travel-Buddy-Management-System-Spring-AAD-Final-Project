@@ -8,7 +8,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One row per create/update/delete anywhere in the app — written
+ *  automatically by AuditLogAspect, never by hand. Auto-increment ID
+ *  (unlike the rest of the app's client-assigned IDs) since this is
+ *  written purely server-side. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

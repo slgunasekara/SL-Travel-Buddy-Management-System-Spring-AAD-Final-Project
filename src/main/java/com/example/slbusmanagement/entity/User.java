@@ -7,7 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** Mirrors the `users` table from db.js exactly (userId, username, password,
+ *  name, role, contact, nic, email, createdAt). */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,6 +36,10 @@ public class User {
     private String email;
 
     private String createdAt;
+
+    /** Two-Factor Authentication — email OTP required at login when true.
+     *  Self-service opt-in per user (Settings → Security). */
+    private boolean twoFactorEnabled;
 
     @Enumerated(EnumType.STRING)
     private RecordStatus status = RecordStatus.ACTIVE;

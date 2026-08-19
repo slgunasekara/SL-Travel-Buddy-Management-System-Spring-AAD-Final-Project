@@ -9,7 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** A bus's (route/revenue) license — renewed yearly. Like Insurance, a bus
+ *  can have several rows over time; the latest by expireDate is current. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

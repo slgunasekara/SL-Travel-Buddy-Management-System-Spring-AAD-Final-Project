@@ -20,10 +20,10 @@ public class Accident {
 
     private Long busId;
 
-
+    /** Optional — an accident can happen while parked, with no trip running. */
     private Long tripId;
 
-
+    /** The driver who was driving the bus at the time — references Employee. */
     private Long driverId;
 
     private String location;

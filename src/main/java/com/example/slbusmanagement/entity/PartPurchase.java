@@ -36,6 +36,10 @@ public class PartPurchase {
 
     private String partDescription;
 
+    private String receiptPhotoUrl;
+
+    private Integer expectedLifespanMonths;
+
     private Long createdBy;
 
 

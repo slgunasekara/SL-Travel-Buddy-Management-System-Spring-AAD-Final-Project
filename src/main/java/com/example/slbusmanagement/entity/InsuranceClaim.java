@@ -9,7 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** A claim filed against a bus's insurance policy — optionally linked to an
+ *  Accident record (a claim can also be filed without one, e.g. theft,
+ *  natural damage). Company/policy details are looked up from Insurance by
+ *  busId at display time rather than duplicated here. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

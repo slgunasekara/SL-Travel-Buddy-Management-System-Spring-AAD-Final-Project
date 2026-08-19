@@ -9,7 +9,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One monthly spending cap for an expense category (Fuel / Maintenance /
+ *  Parts) — Settings → Budget Caps checks the current month's actual spend
+ *  against these and raises a fleet alert when a category is
+ *  approaching/over its cap. One row per category (the latest ACTIVE row
+ *  for a category is the one in effect, same "latest wins" convention as
+ *  Insurance/License). */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

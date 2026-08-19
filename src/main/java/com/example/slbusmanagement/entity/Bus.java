@@ -38,7 +38,10 @@ public class Bus {
 
     private Double fuelEfficiency;
 
-
+    /** A bus's NTC Route Permit is fixed to exactly one route — this is
+     *  what auto-fills (and locks) Start/End Location on a ROUTE-category
+     *  trip, so a trip can never accidentally be logged against a route
+     *  this bus isn't actually permitted to run. */
     private String routePermitNo;
     private String permitStartLocation;
     private String permitEndLocation;

@@ -8,7 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** One row per change to an employee's baseSalaryRate — written
+ *  automatically by EmployeeServiceImpl.update() whenever the rate
+ *  actually changes, never by hand. */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

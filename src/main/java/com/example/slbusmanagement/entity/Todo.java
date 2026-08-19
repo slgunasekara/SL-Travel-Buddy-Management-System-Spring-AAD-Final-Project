@@ -9,7 +9,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
+/** Internal To-Do List — Owner assigns a task to any user (typically a
+ *  Manager), that user tracks it through to completion. Soft-deleted like
+ *  everything else (status=INACTIVE), separate from todoStatus (the
+ *  task's own PENDING/IN_PROGRESS/COMPLETED workflow state). */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
