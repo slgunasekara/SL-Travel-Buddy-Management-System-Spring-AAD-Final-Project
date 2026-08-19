@@ -20,5 +20,8 @@ public class EmployeeDTO {
     private String joinDate;
     private String exitDate;
     private String empStatus;
+    private Double baseSalaryRate;
+    private String nicPhotoUrl;
+    private String licencePhotoUrl;
     private Long createdBy;
 }
