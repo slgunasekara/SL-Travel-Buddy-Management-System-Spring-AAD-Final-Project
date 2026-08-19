@@ -77,6 +77,15 @@ public class BusServiceImpl implements BusService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Bus Method Executed....");
+        Bus entity = busRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Bus not found with ID: " + id));
 
+        // Soft delete — the row stays in the database, only its status flips
+        // to INACTIVE, exactly like AMG Super Mart's Customer/Item delete.
+        entity.setStatus(RecordStatus.INACTIVE);
+        busRepository.save(entity);
+        log.info("Bus Deleted (soft) Successfully....");
     }
 }
