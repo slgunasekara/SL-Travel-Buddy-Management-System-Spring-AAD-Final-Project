@@ -28,7 +28,11 @@ public class BusServiceImpl implements BusService {
 
     @Override
     public List<BusDTO> getAll() {
-        return List.of();
+        log.info("Get All Bus Method Executed....");
+        // Soft-deleted (INACTIVE) records are hidden from every list.
+        return busRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
