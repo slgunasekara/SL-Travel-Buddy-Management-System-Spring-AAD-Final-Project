@@ -28,4 +28,10 @@ public class UpdatePriceController {
         UpdatePriceDTO saved = updatePriceService.add(dto);
         return new CommonResponse(0, saved, "UpdatePrice added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody UpdatePriceDTO dto) {
+        UpdatePriceDTO updated = updatePriceService.update(id, dto);
+        return new CommonResponse(0, updated, "UpdatePrice updated successfully");
+    }
 }
