@@ -35,4 +35,10 @@ public class EmployeeController {
         return new CommonResponse(0, updated, "Employee updated successfully");
     }
 
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        employeeService.delete(id);
+        return new CommonResponse(0, "Success", "Employee deleted successfully");
+    }
+
 }
