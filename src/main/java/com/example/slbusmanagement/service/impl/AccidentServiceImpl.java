@@ -74,7 +74,14 @@ public class AccidentServiceImpl implements AccidentService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Accident Method Executed....");
+        Accident entity = accidentRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Accident not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        accidentRepository.save(entity);
+        log.info("Accident Deleted (soft) Successfully....");
     }
 
 }
