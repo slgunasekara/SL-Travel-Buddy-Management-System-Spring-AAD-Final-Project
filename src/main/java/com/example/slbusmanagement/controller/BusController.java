@@ -30,4 +30,10 @@ public class BusController {
         BusDTO saved = busService.add(dto);
         return new CommonResponse(0, saved, "Bus added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody BusDTO dto) {
+        BusDTO updated = busService.update(id, dto);
+        return new CommonResponse(0, updated, "Bus updated successfully");
+    }
 }
