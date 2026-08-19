@@ -48,11 +48,33 @@ public class TripExpenseServiceImpl implements TripExpenseService {
 
     @Override
     public TripExpenseDTO update(Long id, TripExpenseDTO dto) {
-        return null;
+        log.info("Update TripExpense Method Executed....");
+        TripExpense entity = tripExpenseRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "TripExpense not found with ID: " + id));
+
+        entity.setTripId(dto.getTripId());
+        entity.setDate(dto.getDate());
+        entity.setFuelAmount(dto.getFuelAmount());
+        entity.setParkingAmount(dto.getParkingAmount());
+        entity.setOtherAmount(dto.getOtherAmount());
+        entity.setOtherDescription(dto.getOtherDescription());
+        entity.setNotes(dto.getNotes());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        tripExpenseRepository.save(entity);
+        log.info("TripExpense Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
     public void delete(Long id) {
-
+        log.info("Delete TripExpense Method Executed....");
+        TripExpense entity = tripExpenseRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "TripExpense not found with ID: " + id));
+        entity.setStatus(RecordStatus.INACTIVE);
+        tripExpenseRepository.save(entity);
+        log.info("TripExpense Deleted (soft) Successfully....");
     }
 }

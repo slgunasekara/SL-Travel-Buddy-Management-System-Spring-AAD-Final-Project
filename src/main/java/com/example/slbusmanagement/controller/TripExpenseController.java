@@ -31,4 +31,17 @@ public class TripExpenseController {
         return new CommonResponse(0, saved, "TripExpense added successfully");
     }
 
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody TripExpenseDTO dto) {
+        TripExpenseDTO updated = tripExpenseService.update(id, dto);
+        return new CommonResponse(0, updated, "TripExpense updated successfully");
+    }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        tripExpenseService.delete(id);
+        return new CommonResponse(0, "Success", "TripExpense deleted successfully");
+    }
+
 }
