@@ -17,6 +17,13 @@ public class BusController {
 
     private final BusService busService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<BusDTO> items = busService.getAll();
+        return new CommonResponse(0, items, "Get all Bus");
+    }
+
+
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody BusDTO dto) {
