@@ -34,6 +34,7 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.findAll().stream()
                 .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
                 .map(this::toDto).toList();
+
     }
 
 
