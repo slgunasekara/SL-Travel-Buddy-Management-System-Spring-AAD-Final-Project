@@ -29,4 +29,10 @@ public class TripController {
         TripDTO saved = tripService.add(dto);
         return new CommonResponse(0, saved, "Trip added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody TripDTO dto) {
+        TripDTO updated = tripService.update(id, dto);
+        return new CommonResponse(0, updated, "Trip updated successfully");
+    }
 }
