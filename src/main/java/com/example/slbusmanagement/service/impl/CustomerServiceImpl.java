@@ -75,6 +75,13 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Customer Method Executed....");
+        Customer entity = customerRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Customer not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        customerRepository.save(entity);
+        log.info("Customer Deleted (soft) Successfully....");
     }
 }
