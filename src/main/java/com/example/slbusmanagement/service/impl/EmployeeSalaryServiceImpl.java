@@ -3,7 +3,6 @@ package com.example.slbusmanagement.service.impl;
 import com.example.slbusmanagement.dto.EmployeeSalaryDTO;
 import com.example.slbusmanagement.entity.EmployeeSalary;
 import com.example.slbusmanagement.enumiration.RecordStatus;
-import com.example.slbusmanagement.exception.CustomeException;
 import com.example.slbusmanagement.repository.EmployeeSalaryRepository;
 import com.example.slbusmanagement.service.EmployeeSalaryService;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +28,11 @@ public class EmployeeSalaryServiceImpl implements EmployeeSalaryService {
 
     @Override
     public List<EmployeeSalaryDTO> getAll() {
-        return List.of();
+        log.info("Get All EmployeeSalary Method Executed....");
+
+        return employeeSalaryRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
