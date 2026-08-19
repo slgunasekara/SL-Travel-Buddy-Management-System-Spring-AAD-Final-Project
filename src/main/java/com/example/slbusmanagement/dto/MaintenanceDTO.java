@@ -16,5 +16,6 @@ public class MaintenanceDTO {
     private Double cost;
     private String technician;
     private String description;
+    private String receiptPhotoUrl;
     private Long createdBy;
 }

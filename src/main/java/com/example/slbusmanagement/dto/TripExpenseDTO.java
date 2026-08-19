@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class TripExpenseDTO {
     private Long tripExpId;
     private Long tripId;

@@ -10,5 +10,4 @@ import lombok.NoArgsConstructor;
 public class TwoFactorVerifyRequestDTO {
     private String username;
     private String code;
-
 }

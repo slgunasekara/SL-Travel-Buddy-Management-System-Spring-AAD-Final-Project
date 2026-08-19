@@ -18,5 +18,7 @@ public class PartPurchaseDTO {
     private String supplierName;
     private String date;
     private String partDescription;
+    private String receiptPhotoUrl;
+    private Integer expectedLifespanMonths;
     private Long createdBy;
 }

@@ -15,6 +15,9 @@ public class CustomerDTO {
     private String email;
     private String address;
     private String notes;
+    private String clientTier;
+    private Double agreedRate;
+    private String billingCycle;
     private Long createdBy;
     private String createdAt;
 }
