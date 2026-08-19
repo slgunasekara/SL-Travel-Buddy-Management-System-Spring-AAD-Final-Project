@@ -49,7 +49,27 @@ public class PartPurchaseServiceImpl implements PartPurchaseService {
 
     @Override
     public PartPurchaseDTO update(Long id, PartPurchaseDTO dto) {
-        return null;
+        log.info("Update PartPurchase Method Executed....");
+        PartPurchase entity = partPurchaseRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "PartPurchase not found with ID: " + id));
+
+        entity.setBusId(dto.getBusId());
+        entity.setMaintId(dto.getMaintId());
+        entity.setPartName(dto.getPartName());
+        entity.setQuantity(dto.getQuantity());
+        entity.setUnitPrice(dto.getUnitPrice());
+        entity.setTotalCost(dto.getTotalCost());
+        entity.setSupplierName(dto.getSupplierName());
+        entity.setDate(dto.getDate());
+        entity.setPartDescription(dto.getPartDescription());
+        entity.setReceiptPhotoUrl(dto.getReceiptPhotoUrl());
+        entity.setExpectedLifespanMonths(dto.getExpectedLifespanMonths());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        partPurchaseRepository.save(entity);
+        log.info("PartPurchase Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override

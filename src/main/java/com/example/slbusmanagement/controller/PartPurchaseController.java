@@ -30,4 +30,10 @@ public class PartPurchaseController {
         return new CommonResponse(0, saved, "PartPurchase added successfully");
     }
 
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody PartPurchaseDTO dto) {
+        PartPurchaseDTO updated = partPurchaseService.update(id, dto);
+        return new CommonResponse(0, updated, "PartPurchase updated successfully");
+    }
+
 }
