@@ -34,4 +34,10 @@ public class AccidentController {
         AccidentDTO updated = accidentService.update(id, dto);
         return new CommonResponse(0, updated, "Accident updated successfully");
     }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        accidentService.delete(id);
+        return new CommonResponse(0, "Success", "Accident deleted successfully");
+    }
 }
