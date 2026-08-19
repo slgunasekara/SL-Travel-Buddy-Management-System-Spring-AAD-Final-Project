@@ -71,6 +71,13 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Trip Method Executed....");
+        Trip entity = tripRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Trip not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        tripRepository.save(entity);
+        log.info("Trip Deleted (soft) Successfully....");
     }
 }
