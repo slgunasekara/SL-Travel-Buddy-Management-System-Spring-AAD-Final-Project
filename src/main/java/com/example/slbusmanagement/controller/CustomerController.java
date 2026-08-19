@@ -28,4 +28,10 @@ public class CustomerController {
         CustomerDTO saved = customerService.add(dto);
         return new CommonResponse(0, saved, "Customer added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody CustomerDTO dto) {
+        CustomerDTO updated = customerService.update(id, dto);
+        return new CommonResponse(0, updated, "Customer updated successfully");
+    }
 }
