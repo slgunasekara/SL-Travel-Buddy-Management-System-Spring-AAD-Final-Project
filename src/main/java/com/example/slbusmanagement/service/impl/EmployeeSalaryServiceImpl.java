@@ -69,7 +69,14 @@ public class EmployeeSalaryServiceImpl implements EmployeeSalaryService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete EmployeeSalary Method Executed....");
+        EmployeeSalary entity = employeeSalaryRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "EmployeeSalary not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        employeeSalaryRepository.save(entity);
+        log.info("EmployeeSalary Deleted (soft) Successfully....");
     }
 
 }
