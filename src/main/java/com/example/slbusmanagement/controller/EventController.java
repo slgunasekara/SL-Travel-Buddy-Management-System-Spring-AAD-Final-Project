@@ -28,4 +28,10 @@ public class EventController {
         EventDTO saved = eventService.add(dto);
         return new CommonResponse(0, saved, "Event added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody EventDTO dto) {
+        EventDTO updated = eventService.update(id, dto);
+        return new CommonResponse(0, updated, "Event updated successfully");
+    }
 }
