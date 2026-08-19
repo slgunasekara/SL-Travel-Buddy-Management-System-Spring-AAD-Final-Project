@@ -68,7 +68,15 @@ public class TripEmployeeServiceImpl implements TripEmployeeService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete TripEmployee Method Executed....");
+        TripEmployee entity = tripEmployeeRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "TripEmployee not found with ID: " + id));
 
+
+        entity.setStatus(RecordStatus.INACTIVE);
+        tripEmployeeRepository.save(entity);
+        log.info("TripEmployee Deleted (soft) Successfully....");
     }
 
 }
