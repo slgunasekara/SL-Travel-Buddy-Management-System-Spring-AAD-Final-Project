@@ -39,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+
         try {
             String token = authHeader.substring(7); // Remove "Bearer "
             String username = jwtUtil.extractUsername(token);
@@ -59,8 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                    // Mark this user as "currently active" so the Owner-presence
-                    // login gate and login notifications stay up to date.
                     String role = jwtUtil.extractRole(token);
                     String name = jwtUtil.extractName(token);
                     if (userId != null) {
@@ -81,6 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             handleJwtException(response, 500, "Authentication failed");
         }
     }
+
 
     private void handleJwtException(HttpServletResponse response, int code, String message) throws IOException {
         response.setStatus(code);
