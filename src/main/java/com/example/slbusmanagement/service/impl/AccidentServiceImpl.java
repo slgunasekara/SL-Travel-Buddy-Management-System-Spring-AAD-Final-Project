@@ -29,8 +29,12 @@ public class AccidentServiceImpl implements AccidentService {
 
     @Override
     public List<AccidentDTO> getAll() {
-        return List.of();
+        log.info("Get All Accident Method Executed....");
+        return accidentRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
+
 
     @Override
     public AccidentDTO add(AccidentDTO dto) {
