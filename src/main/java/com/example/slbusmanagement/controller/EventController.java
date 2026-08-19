@@ -34,4 +34,10 @@ public class EventController {
         EventDTO updated = eventService.update(id, dto);
         return new CommonResponse(0, updated, "Event updated successfully");
     }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        eventService.delete(id);
+        return new CommonResponse(0, "Success", "Event deleted successfully");
+    }
 }
