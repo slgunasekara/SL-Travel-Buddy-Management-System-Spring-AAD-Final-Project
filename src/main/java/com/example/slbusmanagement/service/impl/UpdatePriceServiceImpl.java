@@ -71,7 +71,15 @@ public class UpdatePriceServiceImpl implements UpdatePriceService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete UpdatePrice Method Executed....");
+        UpdatePrice entity = updatePriceRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "UpdatePrice not found with ID: " + id));
 
+
+        entity.setStatus(RecordStatus.INACTIVE);
+        updatePriceRepository.save(entity);
+        log.info("UpdatePrice Deleted (soft) Successfully....");
     }
 
 }
