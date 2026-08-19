@@ -29,8 +29,13 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public List<CustomerDTO> getAll() {
-        return List.of();
+        log.info("Get All Customer Method Executed....");
+
+        return customerRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
+
 
     @Override
     public CustomerDTO add(CustomerDTO dto) {
