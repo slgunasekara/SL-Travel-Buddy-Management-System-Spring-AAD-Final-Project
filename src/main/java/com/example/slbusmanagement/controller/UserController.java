@@ -29,4 +29,10 @@ public class UserController {
         UserDTO saved = userService.add(dto);
         return new CommonResponse(0, saved, "User added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody UserDTO dto) {
+        UserDTO updated = userService.update(id, dto);
+        return new CommonResponse(0, updated, "User updated successfully");
+    }
 }
