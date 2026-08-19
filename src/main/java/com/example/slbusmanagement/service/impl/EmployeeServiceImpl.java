@@ -98,6 +98,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Employee Method Executed....");
+        Employee entity = employeeRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Employee not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        employeeRepository.save(entity);
+        log.info("Employee Deleted (soft) Successfully....");
     }
 }
