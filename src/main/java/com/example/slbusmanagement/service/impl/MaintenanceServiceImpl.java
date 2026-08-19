@@ -71,7 +71,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     @Override
     public void delete(Long id) {
+        log.info("Delete Maintenance Method Executed....");
+        Maintenance entity = maintenanceRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Maintenance not found with ID: " + id));
 
+        entity.setStatus(RecordStatus.INACTIVE);
+        maintenanceRepository.save(entity);
+        log.info("Maintenance Deleted (soft) Successfully....");
     }
 
 }

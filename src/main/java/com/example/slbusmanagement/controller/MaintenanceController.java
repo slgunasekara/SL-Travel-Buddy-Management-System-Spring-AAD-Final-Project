@@ -36,4 +36,9 @@ public class MaintenanceController {
         return new CommonResponse(0, updated, "Maintenance updated successfully");
     }
 
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        maintenanceService.delete(id);
+        return new CommonResponse(0, "Success", "Maintenance deleted successfully");
+    }
 }
