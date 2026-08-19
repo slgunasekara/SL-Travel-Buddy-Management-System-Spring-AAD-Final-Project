@@ -17,6 +17,11 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<EmployeeDTO> items = employeeService.getAll();
+        return new CommonResponse(0, items, "Get all Employee");
+    }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody EmployeeDTO dto) {
