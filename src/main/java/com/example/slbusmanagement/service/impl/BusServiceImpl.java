@@ -48,7 +48,31 @@ public class BusServiceImpl implements BusService {
 
     @Override
     public BusDTO update(Long id, BusDTO dto) {
-        return null;
+        log.info("Update Bus Method Executed....");
+        Bus entity = busRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Bus not found with ID: " + id));
+
+        entity.setBusBrandName(dto.getBusBrandName());
+        entity.setBusNumber(dto.getBusNumber());
+        entity.setBusType(dto.getBusType());
+        entity.setNoOfSeats(dto.getNoOfSeats());
+        entity.setBusStatus(dto.getBusStatus());
+        entity.setManufactureDate(dto.getManufactureDate());
+        entity.setInsuranceExpiryDate(dto.getInsuranceExpiryDate());
+        entity.setLicenseRenewalDate(dto.getLicenseRenewalDate());
+        entity.setCurrentMileage(dto.getCurrentMileage());
+        entity.setFuelEfficiency(dto.getFuelEfficiency());
+        entity.setRoutePermitNo(dto.getRoutePermitNo());
+        entity.setPermitStartLocation(dto.getPermitStartLocation());
+        entity.setPermitEndLocation(dto.getPermitEndLocation());
+        entity.setCreatedBy(dto.getCreatedBy());
+        entity.setCreatedAt(dto.getCreatedAt());
+        entity.setUpdatedAt(dto.getUpdatedAt());
+
+        busRepository.save(entity);
+        log.info("Bus Updated Successfully....");
+        return toDto(entity);
     }
 
     @Override
