@@ -31,7 +31,11 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<EmployeeDTO> getAll() {
-        return List.of();
+        log.info("Get All Employee Method Executed....");
+
+        return employeeRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
