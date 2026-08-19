@@ -36,4 +36,10 @@ public class BusController {
         BusDTO updated = busService.update(id, dto);
         return new CommonResponse(0, updated, "Bus updated successfully");
     }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        busService.delete(id);
+        return new CommonResponse(0, "Success", "Bus deleted successfully");
+    }
 }
