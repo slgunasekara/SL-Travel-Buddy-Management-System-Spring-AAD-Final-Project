@@ -17,6 +17,12 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<CustomerDTO> items = customerService.getAll();
+        return new CommonResponse(0, items, "Get all Customer");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody CustomerDTO dto) {
         CustomerDTO saved = customerService.add(dto);
