@@ -17,6 +17,12 @@ public class TripController {
 
     private final TripService tripService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<TripDTO> items = tripService.getAll();
+        return new CommonResponse(0, items, "Get all Trip");
+    }
+
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody TripDTO dto) {
