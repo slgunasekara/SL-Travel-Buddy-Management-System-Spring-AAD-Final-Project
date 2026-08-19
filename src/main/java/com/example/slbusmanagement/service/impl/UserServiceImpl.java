@@ -32,8 +32,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDTO> getAll() {
-        return List.of();
+        log.info("Get All Users Method Executed....");
+        return userRepository.findAll().stream()
+                .filter(u -> u.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
+
 
     @Override
     public UserDTO add(UserDTO dto) {
