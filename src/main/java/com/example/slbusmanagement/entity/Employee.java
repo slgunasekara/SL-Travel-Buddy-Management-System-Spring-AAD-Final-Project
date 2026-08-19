@@ -1,10 +1,10 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import com.example.slbusmanagement.enumiration.RecordStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,6 +39,12 @@ public class Employee {
     private String exitDate;
 
     private String empStatus;
+
+    private Double baseSalaryRate;
+
+    private String nicPhotoUrl;
+
+    private String licencePhotoUrl;
 
     private Long createdBy;
 

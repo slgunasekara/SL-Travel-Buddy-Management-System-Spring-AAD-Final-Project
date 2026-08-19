@@ -63,8 +63,38 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public EmployeeDTO update(Long id, EmployeeDTO dto) {
-        return null;
+        log.info("Update Employee Method Executed....");
+        Employee entity = employeeRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "Employee not found with ID: " + id));
+
+        entity.setEmpCategory(dto.getEmpCategory());
+        entity.setEmpCategory2(dto.getEmpCategory2());
+        entity.setEmpName(dto.getEmpName());
+        entity.setAddress(dto.getAddress());
+        entity.setContactNo(dto.getContactNo());
+        entity.setNicNo(dto.getNicNo());
+        entity.setNtcNo(dto.getNtcNo());
+        entity.setDrivingLicenceNo(dto.getDrivingLicenceNo());
+        entity.setJoinDate(dto.getJoinDate());
+        entity.setExitDate(dto.getExitDate());
+        entity.setEmpStatus(dto.getEmpStatus());
+        entity.setNicPhotoUrl(dto.getNicPhotoUrl());
+        entity.setLicencePhotoUrl(dto.getLicencePhotoUrl());
+        entity.setCreatedBy(dto.getCreatedBy());
+
+        boolean rateChanged = dto.getBaseSalaryRate() != null
+                && (entity.getBaseSalaryRate() == null || !entity.getBaseSalaryRate().equals(dto.getBaseSalaryRate()));
+        entity.setBaseSalaryRate(dto.getBaseSalaryRate());
+
+        employeeRepository.save(entity);
+        if (rateChanged) {
+            recordRateChange(entity.getEmpId(), dto.getBaseSalaryRate());
+        }
+        log.info("Employee Updated Successfully....");
+        return toDto(entity);
     }
+
 
     @Override
     public void delete(Long id) {
