@@ -95,7 +95,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long id) {
-
+        log.info("Delete User Method Executed....");
+        User u = userRepository.findById(id)
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .orElseThrow(() -> new CustomeException(404, "User not found with ID: " + id));
+        u.setStatus(RecordStatus.INACTIVE);
+        userRepository.save(u);
+        log.info("User Deleted (soft) Successfully....");
     }
 
 }
