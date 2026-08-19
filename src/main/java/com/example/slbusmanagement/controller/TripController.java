@@ -35,4 +35,10 @@ public class TripController {
         TripDTO updated = tripService.update(id, dto);
         return new CommonResponse(0, updated, "Trip updated successfully");
     }
+
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse delete(@PathVariable Long id) {
+        tripService.delete(id);
+        return new CommonResponse(0, "Success", "Trip deleted successfully");
+    }
 }
