@@ -17,6 +17,12 @@ public class UpdatePriceController {
 
     private final UpdatePriceService updatePriceService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<UpdatePriceDTO> items = updatePriceService.getAll();
+        return new CommonResponse(0, items, "Get all UpdatePrice");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody UpdatePriceDTO dto) {
         UpdatePriceDTO saved = updatePriceService.add(dto);
