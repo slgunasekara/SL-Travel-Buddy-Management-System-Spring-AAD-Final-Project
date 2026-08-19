@@ -1,0 +1,27 @@
+package com.example.slbusmanagement.controller;
+
+import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.dto.TripExpenseDTO;
+import com.example.slbusmanagement.service.TripExpenseService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(value = "v1/trip-expense")
+@CrossOrigin
+@RequiredArgsConstructor
+public class TripExpenseController {
+
+    private final TripExpenseService tripExpenseService;
+
+
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse add(@RequestBody TripExpenseDTO dto) {
+        TripExpenseDTO saved = tripExpenseService.add(dto);
+        return new CommonResponse(0, saved, "TripExpense added successfully");
+    }
+
+}
