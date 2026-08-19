@@ -29,7 +29,11 @@ public class PartPurchaseServiceImpl implements PartPurchaseService {
 
     @Override
     public List<PartPurchaseDTO> getAll() {
-        return List.of();
+        log.info("Get All PartPurchase Method Executed....");
+        // Soft-deleted (INACTIVE) records are hidden from every list.
+        return partPurchaseRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override

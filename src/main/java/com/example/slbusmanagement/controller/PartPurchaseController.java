@@ -18,6 +18,12 @@ public class PartPurchaseController {
     private final PartPurchaseService partPurchaseService;
 
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<PartPurchaseDTO> items = partPurchaseService.getAll();
+        return new CommonResponse(0, items, "Get all PartPurchase");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody PartPurchaseDTO dto) {
         PartPurchaseDTO saved = partPurchaseService.add(dto);
