@@ -28,4 +28,11 @@ public class EmployeeSalaryController {
         EmployeeSalaryDTO saved = employeeSalaryService.add(dto);
         return new CommonResponse(0, saved, "EmployeeSalary added successfully");
     }
+
+    @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse update(@PathVariable Long id, @RequestBody EmployeeSalaryDTO dto) {
+        EmployeeSalaryDTO updated = employeeSalaryService.update(id, dto);
+        return new CommonResponse(0, updated, "EmployeeSalary updated successfully");
+    }
+
 }
