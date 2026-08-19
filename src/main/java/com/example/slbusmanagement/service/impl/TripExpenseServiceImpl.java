@@ -29,7 +29,10 @@ public class TripExpenseServiceImpl implements TripExpenseService {
 
     @Override
     public List<TripExpenseDTO> getAll() {
-        return List.of();
+        log.info("Get All TripExpense Method Executed....");
+        return tripExpenseRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override

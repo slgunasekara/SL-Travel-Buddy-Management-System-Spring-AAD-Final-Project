@@ -18,6 +18,13 @@ public class TripExpenseController {
     private final TripExpenseService tripExpenseService;
 
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<TripExpenseDTO> items = tripExpenseService.getAll();
+        return new CommonResponse(0, items, "Get all TripExpense");
+    }
+
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody TripExpenseDTO dto) {
         TripExpenseDTO saved = tripExpenseService.add(dto);
