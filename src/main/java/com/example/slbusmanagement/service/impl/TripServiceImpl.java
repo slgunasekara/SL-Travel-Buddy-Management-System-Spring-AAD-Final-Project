@@ -29,7 +29,11 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripDTO> getAll() {
-        return List.of();
+        log.info("Get All Trip Method Executed....");
+
+        return tripRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
