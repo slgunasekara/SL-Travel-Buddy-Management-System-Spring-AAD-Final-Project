@@ -17,6 +17,12 @@ public class EventController {
 
     private final EventService eventService;
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CommonResponse getAll() {
+        List<EventDTO> items = eventService.getAll();
+        return new CommonResponse(0, items, "Get all Event");
+    }
+
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public CommonResponse add(@RequestBody EventDTO dto) {
         EventDTO saved = eventService.add(dto);
