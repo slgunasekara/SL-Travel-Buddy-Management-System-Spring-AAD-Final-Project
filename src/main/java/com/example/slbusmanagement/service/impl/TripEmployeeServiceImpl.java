@@ -1,6 +1,7 @@
 package com.example.slbusmanagement.service.impl;
 
 import com.example.slbusmanagement.dto.TripEmployeeDTO;
+import com.example.slbusmanagement.dto.TripExpenseDTO;
 import com.example.slbusmanagement.entity.TripEmployee;
 import com.example.slbusmanagement.enumiration.RecordStatus;
 import com.example.slbusmanagement.exception.CustomeException;
@@ -29,7 +30,11 @@ public class TripEmployeeServiceImpl implements TripEmployeeService {
 
     @Override
     public List<TripEmployeeDTO> getAll() {
-        return List.of();
+        log.info("Get All TripEmployee Method Executed....");
+
+        return tripEmployeeRepository.findAll().stream()
+                .filter(x -> x.getStatus() == RecordStatus.ACTIVE)
+                .map(this::toDto).toList();
     }
 
     @Override
