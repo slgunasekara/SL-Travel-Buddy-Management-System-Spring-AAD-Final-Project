@@ -7,13 +7,16 @@
 ## 1 - login
 <img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/f1037e78-26af-4c90-a568-005cd0fa377a" />
 
-Owner,
+```
+Owner: 
 User Name :amg
 Password :amg123
-
-Manager,
+```
+```
+Manager:
 User Name :sampath
 Password :sampath123
+```
 
 ## 2 - Forget password
 <img width="1920" height="1080" alt="2" src="https://github.com/user-attachments/assets/e000ec44-00a2-44c3-a546-3f362043adf8" />
