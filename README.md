@@ -117,8 +117,16 @@
 
 ## 38 - Ditect Manager Log for owner using email 
 <img width="950" height="525" alt="38 ditect Manager Log for owner" src="https://github.com/user-attachments/assets/0e80f409-a34d-4f8c-9a0f-5f8db9791151" />
+##
 
+# ER Diagram 
+<img width="6026" height="11184" alt="ER Digrom " src="https://github.com/user-attachments/assets/a15a66a3-4d61-415a-968f-7267c59a3a8c" />
 
+# Use Case Diagram 
+<img width="7936" height="9664" alt="Class Digram" src="https://github.com/user-attachments/assets/e0830dcb-9a13-4b02-aa80-e72d515822c6" />
+
+# Class Diagram
+<img width="7936" height="9664" alt="Class Digram" src="https://github.com/user-attachments/assets/8ce338b9-6933-42a0-8be5-45f62482137e" />
 
 
 
