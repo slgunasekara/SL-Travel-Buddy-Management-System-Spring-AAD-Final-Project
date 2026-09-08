@@ -1,8 +1,3 @@
-/* =========================================================================
-   theme.js — dark mode toggle. Pure presentation layer: sets
-   `data-theme="dark"` on <html>, persisted in localStorage. All actual
-   color changes live in CSS under [data-theme="dark"] selectors.
-   ========================================================================= */
 
 const Theme = (() => {
   const KEY = "bms_theme";
@@ -34,5 +29,5 @@ const Theme = (() => {
   return { get, set, toggle, init };
 })();
 
-// Apply immediately (before paint) to avoid a flash of the wrong theme.
+
 Theme.init();

@@ -1,27 +1,34 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import java.time.LocalDateTime;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Customer {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long customerId;
 
     private String name;
 
     private String contact;
 
+    @jakarta.persistence.Column(unique = true)
     private String nic;
 
     private String email;
@@ -30,15 +37,10 @@ public class Customer {
 
     private String notes;
 
-    private String clientTier;
-
-    private Double agreedRate;
-
-    private String billingCycle;
-
     private Long createdBy;
 
-    private String createdAt;
+
+    private LocalDateTime createdAt;
 
 
     @Enumerated(EnumType.STRING)

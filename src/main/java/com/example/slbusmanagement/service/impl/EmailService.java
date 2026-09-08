@@ -8,8 +8,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.ZonedDateTime;
 
 
 @Service
@@ -49,7 +49,8 @@ public class EmailService {
 
         for (User recipient : recipients) {
             if (recipient.getEmail() == null || recipient.getEmail().isBlank()) continue;
-            if (recipient.getUserId().equals(loggedInUser.getUserId())) continue; // don't notify the person about their own login
+            if (recipient.getUserId().equals(loggedInUser.getUserId()))
+                continue; // don't notify the person about their own login
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setFrom(fromAddress);
@@ -66,30 +67,26 @@ public class EmailService {
 
 
     @Async
-    public void sendDigestEmail(java.util.List<User> recipients, String subject, String body) {
-        if (!enabled) {
-            log.info("Digest email skipped (app.mail.enabled=false): {}", subject);
+    public void sendOtpEmail(String toEmail, String toName, String otpCode) {
+        if (!enabled || fromAddress == null || fromAddress.isBlank() || fromAddress.startsWith("REPLACE_WITH")) {
+            log.warn("OTP email delivery isn't configured (app.mail.enabled / app.mail.from) — code for {} is: {}", toEmail, otpCode);
             return;
         }
-        if (fromAddress == null || fromAddress.isBlank() || fromAddress.startsWith("REPLACE_WITH")) {
-            log.warn("Digest email skipped — app.mail.from / spring.mail.username still has the placeholder value.");
-            return;
-        }
-        if (recipients == null || recipients.isEmpty()) return;
+        if (toEmail == null || toEmail.isBlank()) return;
 
-        for (User recipient : recipients) {
-            if (recipient.getEmail() == null || recipient.getEmail().isBlank()) continue;
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromAddress);
-                message.setTo(recipient.getEmail());
-                message.setSubject(subject);
-                message.setText(body);
-                mailSender.send(message);
-                log.info("Digest email ({}) sent to {}", subject, recipient.getEmail());
-            } catch (Exception ex) {
-                log.warn("Failed to send digest email to {}: {}", recipient.getEmail(), ex.getMessage());
-            }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromAddress);
+            message.setTo(toEmail);
+            message.setSubject("SL Travel Buddy — Password Reset Code");
+            message.setText("Hi " + (toName != null ? toName : "there") + ",\n\n"
+                    + "Your password reset code is: " + otpCode + "\n\n"
+                    + "This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.\n\n"
+                    + "— SL Travel Buddy");
+            mailSender.send(message);
+            log.info("OTP email sent to {}", toEmail);
+        } catch (Exception ex) {
+            log.warn("Failed to send OTP email to {}: {}", toEmail, ex.getMessage());
         }
     }
 }

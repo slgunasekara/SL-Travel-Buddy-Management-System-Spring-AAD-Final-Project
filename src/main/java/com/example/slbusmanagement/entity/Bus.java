@@ -1,56 +1,66 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import com.example.slbusmanagement.enumeration.RecordStatus;
+import com.example.slbusmanagement.enumeration.BusType;
+import com.example.slbusmanagement.enumeration.BusStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Bus {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long busId;
 
     private String busBrandName;
 
+    @jakarta.persistence.Column(unique = true, nullable = false)
     private String busNumber;
 
-    private String busType;
+    @Enumerated(EnumType.STRING)
+    private BusType busType;
 
     private Integer noOfSeats;
 
-    private String busStatus;
+    @Enumerated(EnumType.STRING)
+    private BusStatus busStatus;
 
-    private String manufactureDate;
+    private LocalDate manufactureDate;
 
-    private String insuranceExpiryDate;
+    private LocalDate insuranceExpiryDate;
 
-    private String licenseRenewalDate;
+    private LocalDate licenseRenewalDate;
 
     private Double currentMileage;
 
     private Double fuelEfficiency;
 
-    /** A bus's NTC Route Permit is fixed to exactly one route — this is
-     *  what auto-fills (and locks) Start/End Location on a ROUTE-category
-     *  trip, so a trip can never accidentally be logged against a route
-     *  this bus isn't actually permitted to run. */
+
     private String routePermitNo;
     private String permitStartLocation;
     private String permitEndLocation;
 
     private Long createdBy;
 
-    private String createdAt;
+    private LocalDateTime createdAt;
 
-    private String updatedAt;
+    private LocalDateTime updatedAt;
 
 
     @Enumerated(EnumType.STRING)

@@ -1,30 +1,45 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class EmployeeSalary {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long salaryId;
 
-    private Long empId;
 
-    private Long tripId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emp_id")
+    private Employee employee;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id")
+    private Trip trip;
 
     private Double amount;
 
-    private String date;
+    private LocalDate date;
 
     private String description;
 

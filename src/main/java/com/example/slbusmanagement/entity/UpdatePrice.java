@@ -1,21 +1,28 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class UpdatePrice {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long updatePricesId;
 
     private String updateType;
@@ -30,7 +37,7 @@ public class UpdatePrice {
 
     private Double percentageChange;
 
-    private String changeDate;
+    private LocalDate changeDate;
 
     private String description;
 

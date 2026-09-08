@@ -1,26 +1,32 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Employee {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long empId;
 
     private String empCategory;
 
-    /** Optional second role (e.g. a Driver who also Conducts). */
     private String empCategory2;
 
     private String empName;
@@ -29,23 +35,18 @@ public class Employee {
 
     private String contactNo;
 
+    @jakarta.persistence.Column(unique = true, nullable = false)
     private String nicNo;
 
     private String ntcNo;
 
     private String drivingLicenceNo;
 
-    private String joinDate;
+    private LocalDate joinDate;
 
-    private String exitDate;
+    private LocalDate exitDate;
 
     private String empStatus;
-
-    private Double baseSalaryRate;
-
-    private String nicPhotoUrl;
-
-    private String licencePhotoUrl;
 
     private Long createdBy;
 

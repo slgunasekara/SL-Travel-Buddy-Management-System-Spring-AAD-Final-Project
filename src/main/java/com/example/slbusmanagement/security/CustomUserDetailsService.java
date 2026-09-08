@@ -17,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         com.example.slbusmanagement.entity.User user = userRepository.findAll().stream()
-                .filter(u -> u.getStatus() == com.example.slbusmanagement.enumiration.RecordStatus.ACTIVE)
+                .filter(u -> u.getStatus() == com.example.slbusmanagement.enumeration.RecordStatus.ACTIVE)
                 .filter(u -> u.getUsername().equalsIgnoreCase(username))
                 .findFirst()
                 .orElseThrow(() -> new UsernameNotFoundException("No user found with username: " + username));

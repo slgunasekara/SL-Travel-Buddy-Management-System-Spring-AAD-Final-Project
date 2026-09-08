@@ -1,6 +1,6 @@
 package com.example.slbusmanagement.security;
 
-import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.constant.CommonResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

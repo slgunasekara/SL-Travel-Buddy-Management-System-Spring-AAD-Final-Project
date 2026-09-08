@@ -1,11 +1,15 @@
 package com.example.slbusmanagement.controller;
 
-import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.constant.CommonResponse;
 import com.example.slbusmanagement.dto.EventDTO;
 import com.example.slbusmanagement.service.EventService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import com.example.slbusmanagement.constant.ResponseCode;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -18,26 +22,27 @@ public class EventController {
     private final EventService eventService;
 
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse getAll() {
+    public ResponseEntity<CommonResponse> getAll() {
         List<EventDTO> items = eventService.getAll();
-        return new CommonResponse(0, items, "Get all Event");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, items, "Get all Event"));
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse add(@RequestBody EventDTO dto) {
+    public ResponseEntity<CommonResponse> add(@jakarta.validation.Valid @RequestBody EventDTO dto) {
         EventDTO saved = eventService.add(dto);
-        return new CommonResponse(0, saved, "Event added successfully");
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CommonResponse(ResponseCode.OPERATION_SUCCESS, saved, "Event added successfully"));
     }
 
     @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse update(@PathVariable Long id, @RequestBody EventDTO dto) {
+    public ResponseEntity<CommonResponse> update(@PathVariable Long id, @jakarta.validation.Valid @RequestBody EventDTO dto) {
         EventDTO updated = eventService.update(id, dto);
-        return new CommonResponse(0, updated, "Event updated successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, updated, "Event updated successfully"));
     }
 
+    @PreAuthorize("hasAnyRole('Owner','Manager')")
     @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse delete(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse> delete(@PathVariable Long id) {
         eventService.delete(id);
-        return new CommonResponse(0, "Success", "Event deleted successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, "Success", "Event deleted successfully"));
     }
 }

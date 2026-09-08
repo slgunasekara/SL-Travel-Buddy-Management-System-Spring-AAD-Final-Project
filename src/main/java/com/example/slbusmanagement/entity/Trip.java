@@ -1,26 +1,41 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import com.example.slbusmanagement.enumeration.RecordStatus;
+import com.example.slbusmanagement.enumeration.TripCategory;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Trip {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tripId;
 
-    private String tripCategory;
+    @Enumerated(EnumType.STRING)
+    private TripCategory tripCategory;
 
-    private Long busId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bus_id")
+    private Bus bus;
 
     private String startLocation;
 
@@ -30,7 +45,7 @@ public class Trip {
 
     private Double totalIncome;
 
-    private String tripDate;
+    private LocalDate tripDate;
 
     private String description;
 

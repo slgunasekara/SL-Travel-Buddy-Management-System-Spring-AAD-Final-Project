@@ -1,15 +1,26 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
-import com.example.slbusmanagement.enumiration.UserRole;
-import jakarta.persistence.*;
+import com.example.slbusmanagement.enumeration.UserRole;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import java.time.LocalDateTime;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-/** Mirrors the `users` table from db.js exactly (userId, username, password,
- *  name, role, contact, nic, email, createdAt). */
-@Data
+
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -17,6 +28,7 @@ import lombok.NoArgsConstructor;
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
     @Column(unique = true, nullable = false)
@@ -35,11 +47,7 @@ public class User {
 
     private String email;
 
-    private String createdAt;
-
-    /** Two-Factor Authentication — email OTP required at login when true.
-     *  Self-service opt-in per user (Settings → Security). */
-    private boolean twoFactorEnabled;
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     private RecordStatus status = RecordStatus.ACTIVE;

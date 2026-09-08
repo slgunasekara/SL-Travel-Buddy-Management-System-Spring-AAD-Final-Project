@@ -1,29 +1,49 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import com.example.slbusmanagement.enumeration.RecordStatus;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class Event {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long eventId;
 
-    private Long busId;
 
-    /** Optional reference to the actual PRIVATE_TRIP record for this
-     *  charter — for traceability only, never summed into any total
-     *  (the trip's own income is what counts toward reports/dashboard). */
-    private Long linkedTripId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bus_id")
+    private Bus bus;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "linked_trip_id")
+    private Trip linkedTrip;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
 
     private String startLocation;
 
@@ -31,7 +51,7 @@ public class Event {
 
     private Double eventValue;
 
-    private String eventDate;
+    private LocalDate eventDate;
 
     private String customerName;
 
@@ -45,11 +65,13 @@ public class Event {
 
     private Boolean eventCompleted;
 
+    private String photoFileName;
+
     private Long createdBy;
 
-    private String createdAt;
+    private LocalDateTime createdAt;
 
-    private String updatedAt;
+    private LocalDateTime updatedAt;
 
 
     @Enumerated(EnumType.STRING)

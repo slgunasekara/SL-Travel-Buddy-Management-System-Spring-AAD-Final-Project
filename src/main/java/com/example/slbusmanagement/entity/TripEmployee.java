@@ -1,30 +1,47 @@
 package com.example.slbusmanagement.entity;
 
-import com.example.slbusmanagement.enumiration.RecordStatus;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import java.time.LocalDate;
+import com.example.slbusmanagement.enumeration.RecordStatus;
+import com.example.slbusmanagement.enumeration.RoleInTrip;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
 public class TripEmployee {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long tripEmpId;
 
-    private Long tripId;
 
-    private Long empId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id")
+    private Trip trip;
 
-    private String roleInTrip;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emp_id")
+    private Employee employee;
 
-    private String assignedDate;
+    @Enumerated(EnumType.STRING)
+    private RoleInTrip roleInTrip;
+
+
+    private LocalDate assignedDate;
 
     private Long createdBy;
 

@@ -1,6 +1,6 @@
 package com.example.slbusmanagement.security;
 
-import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.constant.CommonResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -39,7 +39,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-
         try {
             String token = authHeader.substring(7); // Remove "Bearer "
             String username = jwtUtil.extractUsername(token);
@@ -48,18 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 if (jwtUtil.validateToken(token, userDetails)) {
-                    Long userId = jwtUtil.extractUserId(token);
-                    java.time.Instant issuedAt = jwtUtil.extractIssuedAt(token) == null ? null : jwtUtil.extractIssuedAt(token).toInstant();
-                    if (userId != null && activeSessionRegistry.isRevoked(userId, issuedAt)) {
-                        handleJwtException(response, 401, "This session was ended remotely. Please log in again.");
-                        return;
-                    }
-
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
+
+                    Long userId = jwtUtil.extractUserId(token);
                     String role = jwtUtil.extractRole(token);
                     String name = jwtUtil.extractName(token);
                     if (userId != null) {
@@ -80,7 +74,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             handleJwtException(response, 500, "Authentication failed");
         }
     }
-
 
     private void handleJwtException(HttpServletResponse response, int code, String message) throws IOException {
         response.setStatus(code);

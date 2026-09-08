@@ -1,11 +1,15 @@
 package com.example.slbusmanagement.controller;
 
-import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.constant.CommonResponse;
 import com.example.slbusmanagement.dto.PartPurchaseDTO;
 import com.example.slbusmanagement.service.PartPurchaseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import com.example.slbusmanagement.constant.ResponseCode;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -17,29 +21,28 @@ public class PartPurchaseController {
 
     private final PartPurchaseService partPurchaseService;
 
-
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse getAll() {
+    public ResponseEntity<CommonResponse> getAll() {
         List<PartPurchaseDTO> items = partPurchaseService.getAll();
-        return new CommonResponse(0, items, "Get all PartPurchase");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, items, "Get all PartPurchase"));
     }
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse add(@RequestBody PartPurchaseDTO dto) {
+    public ResponseEntity<CommonResponse> add(@jakarta.validation.Valid @RequestBody PartPurchaseDTO dto) {
         PartPurchaseDTO saved = partPurchaseService.add(dto);
-        return new CommonResponse(0, saved, "PartPurchase added successfully");
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CommonResponse(ResponseCode.OPERATION_SUCCESS, saved, "PartPurchase added successfully"));
     }
 
     @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse update(@PathVariable Long id, @RequestBody PartPurchaseDTO dto) {
+    public ResponseEntity<CommonResponse> update(@PathVariable Long id, @jakarta.validation.Valid @RequestBody PartPurchaseDTO dto) {
         PartPurchaseDTO updated = partPurchaseService.update(id, dto);
-        return new CommonResponse(0, updated, "PartPurchase updated successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, updated, "PartPurchase updated successfully"));
     }
 
+    @PreAuthorize("hasAnyRole('Owner','Manager')")
     @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse delete(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse> delete(@PathVariable Long id) {
         partPurchaseService.delete(id);
-        return new CommonResponse(0, "Success", "PartPurchase deleted successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, "Success", "PartPurchase deleted successfully"));
     }
-
 }

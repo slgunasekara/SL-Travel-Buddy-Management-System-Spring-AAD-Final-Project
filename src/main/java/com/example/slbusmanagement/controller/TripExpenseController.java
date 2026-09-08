@@ -1,11 +1,15 @@
 package com.example.slbusmanagement.controller;
 
-import com.example.slbusmanagement.contant.CommonResponse;
+import com.example.slbusmanagement.constant.CommonResponse;
 import com.example.slbusmanagement.dto.TripExpenseDTO;
 import com.example.slbusmanagement.service.TripExpenseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import com.example.slbusmanagement.constant.ResponseCode;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -17,31 +21,28 @@ public class TripExpenseController {
 
     private final TripExpenseService tripExpenseService;
 
-
     @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse getAll() {
+    public ResponseEntity<CommonResponse> getAll() {
         List<TripExpenseDTO> items = tripExpenseService.getAll();
-        return new CommonResponse(0, items, "Get all TripExpense");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, items, "Get all TripExpense"));
     }
-
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse add(@RequestBody TripExpenseDTO dto) {
+    public ResponseEntity<CommonResponse> add(@jakarta.validation.Valid @RequestBody TripExpenseDTO dto) {
         TripExpenseDTO saved = tripExpenseService.add(dto);
-        return new CommonResponse(0, saved, "TripExpense added successfully");
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CommonResponse(ResponseCode.OPERATION_SUCCESS, saved, "TripExpense added successfully"));
     }
-
 
     @PutMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse update(@PathVariable Long id, @RequestBody TripExpenseDTO dto) {
+    public ResponseEntity<CommonResponse> update(@PathVariable Long id, @jakarta.validation.Valid @RequestBody TripExpenseDTO dto) {
         TripExpenseDTO updated = tripExpenseService.update(id, dto);
-        return new CommonResponse(0, updated, "TripExpense updated successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, updated, "TripExpense updated successfully"));
     }
 
+    @PreAuthorize("hasAnyRole('Owner','Manager')")
     @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public CommonResponse delete(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse> delete(@PathVariable Long id) {
         tripExpenseService.delete(id);
-        return new CommonResponse(0, "Success", "TripExpense deleted successfully");
+        return ResponseEntity.ok(new CommonResponse(ResponseCode.OPERATION_SUCCESS, "Success", "TripExpense deleted successfully"));
     }
-
 }

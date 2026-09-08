@@ -15,9 +15,4 @@ public class LoginResponseDTO {
     private String email;
     private String createdAt;
     private String token;
-    private boolean twoFactorEnabled;
-    /** True when the password check passed but an email OTP is still
-     *  required before a usable token is issued — token/other fields are
-     *  intentionally null in that case (see AuthServiceImpl.login()). */
-    private boolean otpRequired;
 }
