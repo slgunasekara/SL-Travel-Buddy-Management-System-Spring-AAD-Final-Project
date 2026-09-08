@@ -120,7 +120,7 @@
 ##
 
 # ER Diagram 
-<img width="6026" height="11184" alt="ER Digrom " src="https://github.com/user-attachments/assets/a15a66a3-4d61-415a-968f-7267c59a3a8c" />
+<img width="6026" height="11184" alt="ER Digram" src="https://github.com/user-attachments/assets/46d36002-b49c-48cb-9358-be3981d19a9b" />
 
 # Use Case Diagram 
 <img width="1192" height="1600" alt="compress use case" src="https://github.com/user-attachments/assets/76d2ba0a-998f-4384-910d-27e7072bc379" />
