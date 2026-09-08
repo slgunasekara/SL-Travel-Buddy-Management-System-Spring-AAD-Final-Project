@@ -1,5 +1,5 @@
 # Product : SLTravelBuddy	
-### **create by** : _Praveena Gunasekara (AMG)_
+### **created by** : _Praveena Gunasekara (AMG)_
 
 
 ## 1 - loging
