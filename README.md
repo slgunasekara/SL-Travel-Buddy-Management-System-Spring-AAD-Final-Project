@@ -1,8 +1,10 @@
 # Product : SLTravelBuddy	
 ### **created by** : _Praveena Gunasekara (AMG)_
 
+###### ER Diagram / Class Diagram / UseCase Diagram : https://www.figma.com/board/lqJHpKPdAfaj7JO0hIEtAw/SL-Travel-Buddy---Chen-ER-Diagram?node-id=8-578&t=p95Y9J2gn65iPhsZ-1
 
-## 1 - loging
+
+## 1 - login
 <img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/f1037e78-26af-4c90-a568-005cd0fa377a" />
 
 ## 2 - Forget password
