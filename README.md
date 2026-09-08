@@ -123,7 +123,7 @@
 <img width="6026" height="11184" alt="ER Digrom " src="https://github.com/user-attachments/assets/a15a66a3-4d61-415a-968f-7267c59a3a8c" />
 
 # Use Case Diagram 
-<img width="7936" height="9664" alt="Class Digram" src="https://github.com/user-attachments/assets/e0830dcb-9a13-4b02-aa80-e72d515822c6" />
+<img width="1192" height="1600" alt="compress use case" src="https://github.com/user-attachments/assets/76d2ba0a-998f-4384-910d-27e7072bc379" />
 
 # Class Diagram
 <img width="7936" height="9664" alt="Class Digram" src="https://github.com/user-attachments/assets/8ce338b9-6933-42a0-8be5-45f62482137e" />
