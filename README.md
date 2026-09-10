@@ -17,6 +17,12 @@ Manager:
 User Name :sampath
 Password :sampath123
 ```
+---
+```
+mysql username: root
+mysql password: mysql
+```
+
 
 ## 2 - Forget password
 <img width="1920" height="1080" alt="2" src="https://github.com/user-attachments/assets/e000ec44-00a2-44c3-a546-3f362043adf8" />
