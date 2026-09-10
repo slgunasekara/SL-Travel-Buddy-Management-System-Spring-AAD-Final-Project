@@ -120,8 +120,8 @@ Password :sampath123
 ## 35 - Manage User
 <img width="1920" height="1080" alt="35 Manage User" src="https://github.com/user-attachments/assets/9a3c61c4-90ea-4932-a7f2-cc7825a73d43" />
 
-## 36 - Setting (change Current user Password  / Auto backup or manual backup)
-<img width="1920" height="1080" alt="36 Setting (change Current user Password   , Auto backup or manual backup)" src="https://github.com/user-attachments/assets/775197dc-7a06-47ea-bffd-bbf841d6808d" />
+## 36 - Setting (change Current user Password)
+<img width="1920" height="1080" alt="36" src="https://github.com/user-attachments/assets/d5db1211-3731-4f0c-a2f8-4d713f2f6918" />
 
 ## 37 - Export CSV
 <img width="1920" height="1080" alt="37 Export CSV" src="https://github.com/user-attachments/assets/fba643e1-b9b7-4ead-82e6-728c18151f67" />
