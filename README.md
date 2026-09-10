@@ -3,6 +3,23 @@
 
 ###### ER Diagram / Class Diagram / UseCase Diagram : https://www.figma.com/board/lqJHpKPdAfaj7JO0hIEtAw/SL-Travel-Buddy---Chen-ER-Diagram?node-id=8-578&t=p95Y9J2gn65iPhsZ-1
 
+---
+ 
+## Tech Stack
+ 
+| Layer | Technology |
+|---|---|
+| Backend | Java 21+, Spring Boot 4 (Web MVC, Data JPA, Security, Validation, Mail) |
+| Database | MySQL (via Hibernate/JPA) |
+| Auth | JWT (stateless, role-based: **Owner** / **Manager**) |
+| Frontend | Vanilla HTML, CSS, and JavaScript — a hand-built single-page app (no framework), served as static resources by Spring Boot |
+| AI Assistant | Hybrid: hardcoded business-data intents (instant, free, always-on) + Google Gemini API fallback for open-ended questions |
+| Email | Spring Mail (SMTP) — login notifications & password-reset OTPs |
+| Build | Maven |
+ 
+---
+
+#  Features 
 
 ## 1 - login
 <img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/f1037e78-26af-4c90-a568-005cd0fa377a" />
