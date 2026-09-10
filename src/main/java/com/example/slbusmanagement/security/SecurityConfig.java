@@ -55,9 +55,6 @@ public class SecurityConfig {
 
                         .requestMatchers("/v1/user/**").hasRole("Owner")
 
-
-                        .requestMatchers("/v1/admin/**").hasRole("Owner")
-
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

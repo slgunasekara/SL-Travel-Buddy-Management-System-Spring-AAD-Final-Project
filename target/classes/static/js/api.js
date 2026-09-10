@@ -155,12 +155,6 @@ var RESOURCE_MAP = {
     customers: {base: "/v1/customer", id: "customerId"}
 };
 
-var AdminApi = {
-    backupNow: function () {
-        return apiRequest("POST", "/v1/admin/backup-now");
-    }
-};
-
 var LoginEventApi = {
     recent: function () {
         return apiRequest("GET", "/v1/login-events/recent");

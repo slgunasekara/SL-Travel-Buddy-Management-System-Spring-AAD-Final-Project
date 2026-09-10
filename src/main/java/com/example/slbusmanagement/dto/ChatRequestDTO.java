@@ -11,8 +11,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatRequestDTO {
-
     @NotBlank(message = "Message is required")
     private String message;
-
 }

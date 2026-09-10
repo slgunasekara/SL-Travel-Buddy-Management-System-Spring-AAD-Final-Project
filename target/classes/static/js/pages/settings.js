@@ -39,20 +39,6 @@ function renderSettingsPage(container) {
       </form>
     </div>
 
-    <div class="card" ${Session.isOwner() ? "" : 'style="display:none;"'}>
-      <div class="settings-section">
-        <h4>Server Auto-Backup</h4>
-        <p class="muted">
-          The server automatically saves a full backup of every table to its own disk
-          every night at 2:00 AM — no action needed. Use the button below to trigger
-          one immediately (e.g. to test it, or right before a risky change).
-        </p>
-      </div>
-      <div class="settings-actions">
-        <button class="btn btn--secondary" id="btnBackupNow">💾 Run Server Backup Now</button>
-      </div>
-    </div>
-
     <div class="card">
       <div class="settings-section">
         <h4>About</h4>
@@ -99,19 +85,6 @@ function renderSettingsPage(container) {
             qs("#changePasswordForm").reset();
         } catch (err) {
             Toast.error(apiErrorMessage(err, "Could not update your password. Please check your current password and try again."));
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    qs("#btnBackupNow").addEventListener("click", async (e) => {
-        const btn = e.currentTarget;
-        btn.disabled = true;
-        try {
-            const result = await AdminApi.backupNow();
-            Toast.success(result.message || "Server backup created!");
-        } catch (err) {
-            Toast.error(apiErrorMessage(err, "Failed to run the server backup."));
         } finally {
             btn.disabled = false;
         }
