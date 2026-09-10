@@ -1,9 +1,22 @@
 # Product : SLTravelBuddy	
 ### **created by** : _Praveena Gunasekara (AMG)_
 
+###### ER Diagram / Class Diagram / UseCase Diagram : https://www.figma.com/board/lqJHpKPdAfaj7JO0hIEtAw/SL-Travel-Buddy---Chen-ER-Diagram?node-id=8-578&t=p95Y9J2gn65iPhsZ-1
 
-## 1 - loging
+
+## 1 - login
 <img width="1920" height="1080" alt="1" src="https://github.com/user-attachments/assets/f1037e78-26af-4c90-a568-005cd0fa377a" />
+
+```
+Owner: 
+User Name :amg
+Password :amg123
+```
+```
+Manager:
+User Name :sampath
+Password :sampath123
+```
 
 ## 2 - Forget password
 <img width="1920" height="1080" alt="2" src="https://github.com/user-attachments/assets/e000ec44-00a2-44c3-a546-3f362043adf8" />
@@ -20,16 +33,16 @@
 ## 6 - Dashboard
 <img width="1920" height="1080" alt="6" src="https://github.com/user-attachments/assets/0036240b-a48b-43f8-956b-00078eb3c877" />
 
-## 7 - calculator
+## 7 - Calculator
 <img width="1920" height="1080" alt="7 calculator" src="https://github.com/user-attachments/assets/8ff331cc-0ac1-4d5a-8dd0-8dd80781c232" />
 
-## 8 - night mod
+## 8 - Night mod / Light mod
 <img width="1920" height="1096" alt="8 night mod" src="https://github.com/user-attachments/assets/ef4eee0b-31b2-48c5-8e69-447b9e6347f2" />
 
 ## 9 - search any component
 <img width="1920" height="1080" alt="9 search any component" src="https://github.com/user-attachments/assets/2493dffa-9d00-424c-bac9-41ac3af1dbec" />
 
-## 10 - notify alert 
+## 10 - Notify alert 
 <img width="1920" height="1080" alt="10 notify alert " src="https://github.com/user-attachments/assets/2c2aa120-66e9-4d2e-a90a-9fcddb28ca03" />
 
 ## 11 - AI Chat Bot
@@ -59,7 +72,7 @@
 ## 19 - Manager Salary maintain
 <img width="1920" height="1080" alt="19 Manager Salary maintain" src="https://github.com/user-attachments/assets/a63a3f6f-a92d-42f4-b5cc-9b59e10b000f" />
 
-## 20 - view all employe salary
+## 20 - View all employe salary
 <img width="1920" height="1080" alt="20 view all employe salary" src="https://github.com/user-attachments/assets/9a6cc343-151f-4c73-9f45-a7f568598bd8" />
 
 ## 21 - Maintenance (you can add maintanace receipt)
@@ -68,10 +81,10 @@
 ## 22 - Part Purchases
 <img width="1920" height="1080" alt="22 Part Purchases" src="https://github.com/user-attachments/assets/03287ea6-d85e-4f94-b550-3fbdf375ef98" />
 
-## 23 - other service (you can any other service or cost add)
+## 23 - Other service (you can any other service or cost add)
 <img width="1920" height="1080" alt="23 other service (you can any other service or cost add)" src="https://github.com/user-attachments/assets/17080fee-0176-40ff-be55-233e1cb38dd4" />
 
-## 24 - fuel or tickets update prices
+## 24 - Fuel or tickets update prices
 <img width="1920" height="1080" alt="24 fuel or tickets update prices" src="https://github.com/user-attachments/assets/2f667143-92ba-4a31-af04-5fc25f52d84f" />
 
 ## 25 - Report
@@ -95,7 +108,7 @@
 ## 31 - Monthly Profit
 <img width="1920" height="1080" alt="31 Monthly Profit" src="https://github.com/user-attachments/assets/e9e35b98-49d5-4717-ba98-ee707e8bed02" />
 
-## 32 - leader board (best driver / best Conductoor / Best Income Route)
+## 32 - Leader board (best driver / best Conductoor / Best Income Route)
 <img width="1920" height="1080" alt="32 leader board (best driver , best Conductoor , Best Income Route)" src="https://github.com/user-attachments/assets/7016ca7d-e3c7-4d4f-989e-b2c48d8b8d30" />
 
 ## 33 - Tools
@@ -113,10 +126,18 @@
 ## 37 - Export CSV
 <img width="1920" height="1080" alt="37 Export CSV" src="https://github.com/user-attachments/assets/fba643e1-b9b7-4ead-82e6-728c18151f67" />
 
-## 38 - ditect Manager Log for owner using email 
+## 38 - Ditect Manager Log for owner using email 
 <img width="950" height="525" alt="38 ditect Manager Log for owner" src="https://github.com/user-attachments/assets/0e80f409-a34d-4f8c-9a0f-5f8db9791151" />
+##
 
+# ER Diagram 
+<img width="6026" height="11184" alt="ER Digram" src="https://github.com/user-attachments/assets/46d36002-b49c-48cb-9358-be3981d19a9b" />
 
+# Use Case Diagram 
+<img width="1192" height="1600" alt="compress use case" src="https://github.com/user-attachments/assets/76d2ba0a-998f-4384-910d-27e7072bc379" />
+
+# Class Diagram
+<img width="7936" height="9664" alt="Class Digram" src="https://github.com/user-attachments/assets/8ce338b9-6933-42a0-8be5-45f62482137e" />
 
 
 
