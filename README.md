@@ -3,6 +3,8 @@
 
 ###### ER Diagram / Class Diagram / UseCase Diagram : https://www.figma.com/board/lqJHpKPdAfaj7JO0hIEtAw/SL-Travel-Buddy---Chen-ER-Diagram?node-id=8-578&t=p95Y9J2gn65iPhsZ-1
 
+##### Run UI - http://localhost:8080/index.html
+
 ---
  
 ## Tech Stack
